@@ -39,7 +39,7 @@ struct Opt {
     interval: f64,
 }
 
-const KEY_EXPR: &str = "/test/overhead";
+const KEY_EXPR: &str = "test/overhead";
 const BYTES_IN_MB: u64 = 1048576;
 
 #[async_std::main]

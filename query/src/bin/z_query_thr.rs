@@ -11,29 +11,31 @@
 // Contributors:
 //   ADLINK zenoh team, <zenoh@adlink-labs.tech>
 //
-use async_std::stream::StreamExt;
+
 use async_std::sync::Arc;
 use async_std::task;
-use std::convert::TryInto;
+use clap::Parser;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::{Duration, Instant};
-use structopt::StructOpt;
-use zenoh::*;
+use zenoh::prelude::r#async::*;
+use zenoh_protocol_core::{EndPoint, WhatAmI};
 
-#[derive(Debug, StructOpt)]
-#[structopt(name = "z_query")]
+#[derive(Debug, Parser)]
+#[clap(name = "z_query_thr")]
 struct Opt {
-    #[structopt(short = "l", long = "locator")]
-    locator: String,
-    #[structopt(short = "m", long = "mode")]
-    mode: String,
-    #[structopt(short = "n", long = "name")]
+    #[clap(short, long)]
+    locator: EndPoint,
+    #[clap(short, long)]
+    mode: WhatAmI,
+    #[clap(short, long)]
     name: String,
-    #[structopt(short = "s", long = "scenario")]
+    #[clap(short, long)]
     scenario: String,
-    #[structopt(short = "p", long = "payload")]
+    #[clap(short, long)]
     payload: usize,
 }
+
+const KEY_EXPR: &str = "test/query";
 
 #[async_std::main]
 async fn main() {
@@ -42,15 +44,12 @@ async fn main() {
 
     // Parse the args
     let opt = Opt::from_args();
+    let mut config: Config = Config::default();
+    config.set_mode(Some(opt.mode.clone())).unwrap();
+    config.scouting.multicast.set_enabled(Some(false)).unwrap();
+    config.connect.endpoints.push(opt.locator.clone());
 
-    let mut config = Properties::default();
-    config.insert("mode".to_string(), opt.mode.clone());
-
-    config.insert("multicast_scouting".to_string(), "false".to_string());
-    config.insert("peer".to_string(), opt.locator.clone());
-
-    let zenoh = Zenoh::new(config.into()).await.unwrap();
-    let workspace = zenoh.workspace(None).await.unwrap();
+    let session = zenoh::open(config).res().await.unwrap();
 
     let rtt = Arc::new(AtomicUsize::new(0));
     let counter = Arc::new(AtomicUsize::new(0));
@@ -61,18 +60,17 @@ async fn main() {
         loop {
             let now = Instant::now();
             task::sleep(Duration::from_secs(1)).await;
-            let elapsed = now.elapsed().as_micros() as f64;
+            let elapsed = now.elapsed().as_secs_f64();
 
             let r = c_rtt.swap(0, Ordering::Relaxed);
             let c = c_counter.swap(0, Ordering::Relaxed);
             if c > 0 {
-                let interval = 1_000_000.0 / elapsed;
                 println!(
                     "zenoh,{},query.throughput,{},{},{},{}",
                     opt.scenario,
                     opt.name,
                     opt.payload,
-                    (c as f64 / interval).floor() as usize,
+                    (c as f64 / elapsed).floor() as usize,
                     (r as f64 / c as f64).floor() as usize,
                 );
             }
@@ -80,10 +78,9 @@ async fn main() {
     });
 
     loop {
-        let selector = "/test/query".to_string();
         let now = Instant::now();
-        let mut data_stream = workspace.get(&selector.try_into().unwrap()).await.unwrap();
-        while data_stream.next().await.is_some() {}
+        let data_stream = session.get(KEY_EXPR).res().await.unwrap();
+        while data_stream.recv_async().await.is_ok() {}
 
         rtt.fetch_add(now.elapsed().as_micros() as usize, Ordering::Relaxed);
         counter.fetch_add(1, Ordering::Relaxed);

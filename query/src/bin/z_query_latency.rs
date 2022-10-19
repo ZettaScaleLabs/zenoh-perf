@@ -11,11 +11,12 @@
 // Contributors:
 //   ADLINK zenoh team, <zenoh@adlink-labs.tech>
 //
-use async_std::stream::StreamExt;
+
 use clap::Parser;
 use std::time::Instant;
 use zenoh::config::Config;
-use zenoh_buffers::SplitBuffer;
+use zenoh::config::TimestampingConf;
+use zenoh::prelude::r#async::*;
 use zenoh_protocol_core::{EndPoint, WhatAmI};
 
 #[derive(Debug, Parser)]
@@ -36,6 +37,8 @@ struct Opt {
     scenario: String,
 }
 
+const KEY_EXPR: &str = "test/query";
+
 #[async_std::main]
 async fn main() {
     // initiate logging
@@ -51,22 +54,33 @@ async fn main() {
     let config = {
         let mut config: Config = Config::default();
         config.set_mode(Some(mode)).unwrap();
-        config.set_add_timestamp(Some(false)).unwrap();
+        config
+            .set_timestamping(
+                TimestampingConf::new(
+                    Some(zenoh::config::ModeDependentValue::Unique(false)),
+                    Some(false),
+                )
+                .unwrap(),
+            )
+            .unwrap();
         config.scouting.multicast.set_enabled(Some(false)).unwrap();
         config.connect.endpoints.extend(endpoint);
         config
     };
 
-    let session = zenoh::open(config).await.unwrap();
+    let session = zenoh::open(config).res().await.unwrap();
 
     let mut count: u64 = 0;
     loop {
         let now = Instant::now();
-        let mut data_stream = session.get("/test/query").await.unwrap();
+        let data_stream = session.get(KEY_EXPR).res().await.unwrap();
 
         let mut payload: usize = 0;
-        while let Some(reply) = data_stream.next().await {
-            payload += reply.sample.value.payload.len();
+        while let Ok(reply) = data_stream.recv_async().await {
+            match reply.sample {
+                Ok(sample) => payload += sample.value.payload.len(),
+                Err(value) => payload += value.payload.len(),
+            }
         }
 
         println!(

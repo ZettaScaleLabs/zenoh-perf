@@ -130,17 +130,16 @@ async fn measure(messages: Arc<AtomicUsize>, scenario: String, name: String, pay
     loop {
         let now = Instant::now();
         task::sleep(Duration::from_secs(1)).await;
-        let elapsed = now.elapsed().as_micros() as f64;
+        let elapsed = now.elapsed().as_secs_f64();
 
         let c = messages.swap(0, Ordering::Relaxed);
         if c > 0 {
-            let interval = 1_000_000.0 / elapsed;
             println!(
                 "zenoh,{},throughput,{},{},{}",
                 scenario,
                 name,
                 payload,
-                (c as f64 / interval).floor() as usize
+                (c as f64 / elapsed).floor() as usize
             );
         }
     }

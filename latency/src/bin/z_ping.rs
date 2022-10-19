@@ -11,16 +11,14 @@
 // Contributors:
 //   ADLINK zenoh team, <zenoh@adlink-labs.tech>
 //
-use async_std::stream::StreamExt;
 use async_std::sync::{Arc, Mutex};
 use async_std::task;
 use clap::Parser;
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
+use zenoh::buffers::reader::{HasReader, Reader};
 use zenoh::config::Config;
-use zenoh::net::protocol::io::reader::{HasReader, Reader};
-use zenoh::net::protocol::io::SplitBuffer;
-use zenoh::prelude::*;
+use zenoh::prelude::r#async::*;
 use zenoh_protocol_core::{CongestionControl, WhatAmI};
 
 #[derive(Debug, Parser)]
@@ -61,11 +59,11 @@ struct Opt {
     declare_publication: bool,
 }
 
-const KEY_EXPR_PING: &str = "/test/z_ping";
-const KEY_EXPR_PONG: &str = "/test/z_pong";
+const KEY_EXPR_PING: &str = "test/z_ping";
+const KEY_EXPR_PONG: &str = "test/z_pong";
 
 async fn parallel(opt: Opt, config: Config) {
-    let session = zenoh::open(config).await.unwrap();
+    let session = zenoh::open(config).res().await.unwrap();
     let session = Arc::new(session);
 
     // The hashmap with the pings
@@ -76,25 +74,26 @@ async fn parallel(opt: Opt, config: Config) {
     let name = opt.name;
     let interval = opt.interval;
 
-    let mut sub = if opt.use_expr {
+    let sub = if opt.use_expr {
         // Declare the subscriber
-        let key_expr_pong = session.declare_expr(KEY_EXPR_PONG).await.unwrap();
-        session.subscribe(key_expr_pong).reliable().await.unwrap()
+        let key_expr_pong = session.declare_keyexpr(KEY_EXPR_PONG).res().await.unwrap();
+        session
+            .declare_subscriber(key_expr_pong)
+            .reliable()
+            .res()
+            .await
+            .unwrap()
     } else {
-        session.subscribe(KEY_EXPR_PONG).reliable().await.unwrap()
+        session
+            .declare_subscriber(KEY_EXPR_PONG)
+            .reliable()
+            .res()
+            .await
+            .unwrap()
     };
 
-    let mut key_expr_ping = 0;
-    if opt.use_expr {
-        key_expr_ping = session.declare_expr(KEY_EXPR_PING).await.unwrap();
-        if opt.declare_publication {
-            session.declare_publication(key_expr_ping).await.unwrap();
-        }
-    } else if opt.declare_publication {
-        session.declare_publication(KEY_EXPR_PING).await.unwrap();
-    }
     task::spawn(async move {
-        while let Some(sample) = sub.next().await {
+        while let Ok(sample) = sub.recv_async().await {
             let mut payload_reader = sample.value.payload.reader();
             let mut count_bytes = [0u8; 8];
             if payload_reader.read_exact(&mut count_bytes) {
@@ -117,6 +116,36 @@ async fn parallel(opt: Opt, config: Config) {
         panic!("Invalid value!");
     });
 
+    let key_expr_ping = if opt.use_expr {
+        Some(session.declare_keyexpr(KEY_EXPR_PING).res().await.unwrap())
+    } else {
+        None
+    };
+
+    let publisher = if opt.declare_publication {
+        if key_expr_ping.is_some() {
+            Some(
+                session
+                    .declare_publisher(key_expr_ping.clone().unwrap())
+                    .congestion_control(CongestionControl::Block)
+                    .res()
+                    .await
+                    .unwrap(),
+            )
+        } else {
+            Some(
+                session
+                    .declare_publisher(KEY_EXPR_PING)
+                    .congestion_control(CongestionControl::Block)
+                    .res()
+                    .await
+                    .unwrap(),
+            )
+        }
+    } else {
+        None
+    };
+
     let mut count: u64 = 0;
     loop {
         let count_bytes: [u8; 8] = count.to_le_bytes();
@@ -125,45 +154,90 @@ async fn parallel(opt: Opt, config: Config) {
 
         pending.lock().await.insert(count, Instant::now());
 
-        let writer = if opt.use_expr {
-            session.put(key_expr_ping, payload)
+        if publisher.as_ref().is_some() {
+            publisher
+                .as_ref()
+                .unwrap()
+                .put(payload)
+                .res()
+                .await
+                .unwrap();
         } else {
-            session.put(KEY_EXPR_PING, payload)
-        };
-        writer
-            .congestion_control(CongestionControl::Block)
-            .await
-            .unwrap();
-
+            if key_expr_ping.as_ref().is_some() {
+                session
+                    .put(key_expr_ping.as_ref().unwrap(), payload)
+                    .res()
+                    .await
+                    .unwrap();
+            } else {
+                session
+                    .put(KEY_EXPR_PING, payload)
+                    .congestion_control(CongestionControl::Block)
+                    .res()
+                    .await
+                    .unwrap();
+            }
+        }
         task::sleep(Duration::from_secs_f64(opt.interval)).await;
         count += 1;
     }
 }
 
 async fn single(opt: Opt, config: Config) {
-    let session = zenoh::open(config).await.unwrap();
+    let session = zenoh::open(config).res().await.unwrap();
 
     let scenario = opt.scenario;
     let name = opt.name;
     let interval = opt.interval;
 
-    let mut sub = if opt.use_expr {
+    let sub = if opt.use_expr {
         // Declare the subscriber
-        let key_expr_pong = session.declare_expr("/test/pong").await.unwrap();
-        session.subscribe(key_expr_pong).reliable().await.unwrap()
+        let key_expr_pong = session.declare_keyexpr(KEY_EXPR_PONG).res().await.unwrap();
+        session
+            .declare_subscriber(&key_expr_pong)
+            .reliable()
+            .res()
+            .await
+            .unwrap()
     } else {
-        session.subscribe("/test/pong").reliable().await.unwrap()
+        session
+            .declare_subscriber(KEY_EXPR_PONG)
+            .reliable()
+            .res()
+            .await
+            .unwrap()
     };
 
-    let mut key_expr_ping = 0;
-    if opt.use_expr {
-        key_expr_ping = session.declare_expr("/test/ping").await.unwrap();
-        if opt.declare_publication {
-            session.declare_publication(key_expr_ping).await.unwrap();
+    let key_expr_ping = if opt.use_expr {
+        Some(session.declare_keyexpr(KEY_EXPR_PING).res().await.unwrap())
+    } else {
+        None
+    };
+
+    let publisher = if opt.declare_publication {
+        if key_expr_ping.is_some() {
+            Some(
+                session
+                    .declare_publisher(key_expr_ping.clone().unwrap())
+                    .congestion_control(CongestionControl::Block)
+                    .res()
+                    .await
+                    .unwrap(),
+            )
+        } else {
+            Some(
+                session
+                    .declare_publisher(KEY_EXPR_PING)
+                    .congestion_control(CongestionControl::Block)
+                    .res()
+                    .await
+                    .unwrap(),
+            )
         }
-    } else if opt.declare_publication {
-        session.declare_publication("/test/ping").await.unwrap();
-    }
+    } else {
+        None
+    };
+
     let mut count: u64 = 0;
     loop {
         let count_bytes: [u8; 8] = count.to_le_bytes();
@@ -171,18 +245,34 @@ async fn single(opt: Opt, config: Config) {
         payload[0..8].copy_from_slice(&count_bytes);
 
         let now = Instant::now();
-        let writer = if opt.use_expr {
-            session.put(key_expr_ping, payload)
-        } else {
-            session.put("/test/ping", payload)
-        };
-        writer
-            .congestion_control(CongestionControl::Block)
-            .await
-            .unwrap();
 
-        match sub.next().await {
-            Some(sample) => {
+        if publisher.as_ref().is_some() {
+            publisher
+                .as_ref()
+                .unwrap()
+                .put(payload)
+                .res()
+                .await
+                .unwrap();
+        } else {
+            if key_expr_ping.as_ref().is_some() {
+                session
+                    .put(key_expr_ping.as_ref().unwrap(), payload)
+                    .res()
+                    .await
+                    .unwrap();
+            } else {
+                session
+                    .put(KEY_EXPR_PING, payload)
+                    .congestion_control(CongestionControl::Block)
+                    .res()
+                    .await
+                    .unwrap();
+            }
+        }
+
+        match sub.recv_async().await {
+            Ok(sample) => {
                 let mut payload_reader = sample.value.payload.reader();
                 let mut count_bytes = [0u8; 8];
                 if payload_reader.read_exact(&mut count_bytes) {

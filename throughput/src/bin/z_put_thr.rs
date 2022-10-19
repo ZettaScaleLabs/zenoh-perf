@@ -185,45 +185,4 @@ async fn main() {
             }
         });
     }
-
-    // let writer = if use_expr {
-    //     let expr_id = session.declare_keyexpr(KEY_EXPR).res().await.unwrap();
-    //     if declare_publication {
-    //         let publisher = session.declare_publisher(expr_id).res().await.unwrap();
-    //         publisher.put(value.clone())
-    //     } else {
-    //         session.put(expr_id, value.clone())
-    //     }
-    // } else {
-    //     if declare_publication {
-    //         let publisher = session.declare_publisher(KEY_EXPR).res().await.unwrap();
-    //         publisher.put(value.clone())
-    //     } else {
-    //         session.put(KEY_EXPR, value.clone())
-    //     }
-    // };
-
-    // if print {
-    //     let count = Arc::new(AtomicUsize::new(0));
-    //     let c_count = count.clone();
-
-    //     loop {
-    //         writer
-    //             .clone()
-    //             .congestion_control(CongestionControl::Block)
-    //             .res()
-    //             .await
-    //             .unwrap();
-    //         c_count.fetch_add(1, Ordering::Relaxed);
-    //     }
-    // } else {
-    //     loop {
-    //         writer
-    //             .clone()
-    //             .congestion_control(CongestionControl::Block)
-    //             .res()
-    //             .await
-    //             .unwrap();
-    //     }
-    // }
 }

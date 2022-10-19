@@ -18,7 +18,9 @@ use std::{
     sync::atomic::{AtomicUsize, Ordering},
     time::Duration,
 };
-use zenoh::{config::Config, prelude::Value};
+use zenoh::config::Config;
+use zenoh::config::TimestampingConf;
+use zenoh::prelude::r#async::*;
 use zenoh_protocol_core::{CongestionControl, EndPoint, WhatAmI};
 
 #[derive(Debug, Parser)]
@@ -53,7 +55,7 @@ struct Opt {
     declare_publication: bool,
 }
 
-const KEY_EXPR: &str = "/test/thr";
+const KEY_EXPR: &str = "test/thr";
 
 #[async_std::main]
 async fn main() {
@@ -77,7 +79,15 @@ async fn main() {
             Config::default()
         };
         config.set_mode(Some(mode)).unwrap();
-        config.set_add_timestamp(Some(false)).unwrap();
+        config
+            .set_timestamping(
+                TimestampingConf::new(
+                    Some(zenoh::config::ModeDependentValue::Unique(false)),
+                    Some(false),
+                )
+                .unwrap(),
+            )
+            .unwrap();
         config.scouting.multicast.set_enabled(Some(false)).unwrap();
         config.connect.endpoints.extend(endpoint);
         config
@@ -88,23 +98,83 @@ async fn main() {
         .collect::<Vec<u8>>()
         .into();
 
-    let session = zenoh::open(config).await.unwrap();
-    let writer = if use_expr {
-        let expr_id = session.declare_expr(KEY_EXPR).await.unwrap();
-        if declare_publication {
-            session.declare_publication(expr_id);
+    let session = zenoh::open(config).res().await.unwrap();
+
+    let count = Arc::new(AtomicUsize::new(0));
+    let c_count = count.clone();
+
+    match (use_expr, declare_publication, print) {
+        (false, false, false) => loop {
+            session
+                .put(KEY_EXPR, value.clone())
+                .congestion_control(CongestionControl::Block)
+                .res()
+                .await
+                .unwrap();
+        },
+        (true, false, false) => {
+            let expr_id = session.declare_keyexpr(KEY_EXPR).res().await.unwrap();
+            loop {
+                session
+                    .put(&expr_id, value.clone())
+                    .congestion_control(CongestionControl::Block)
+                    .res()
+                    .await
+                    .unwrap();
+            }
         }
-        session.put(expr_id, value.clone())
-    } else {
-        if declare_publication {
-            session.declare_publication(KEY_EXPR);
+        (true, false, true) => {
+            let expr_id = session.declare_keyexpr(KEY_EXPR).res().await.unwrap();
+            loop {
+                session
+                    .put(&expr_id, value.clone())
+                    .congestion_control(CongestionControl::Block)
+                    .res()
+                    .await
+                    .unwrap();
+                c_count.fetch_add(1, Ordering::Relaxed);
+            }
         }
-        session.put(KEY_EXPR, value.clone())
-    };
+        (false, true, false) => {
+            let publisher = session
+                .declare_publisher(KEY_EXPR)
+                .congestion_control(CongestionControl::Block)
+                .res()
+                .await
+                .unwrap();
+            loop {
+                publisher.put(value.clone()).res().await.unwrap();
+            }
+        }
+        (true, true, false) => {
+            let expr_id = session.declare_keyexpr(KEY_EXPR).res().await.unwrap();
+            let publisher = session
+                .declare_publisher(expr_id)
+                .congestion_control(CongestionControl::Block)
+                .res()
+                .await
+                .unwrap();
+            loop {
+                publisher.put(value.clone()).res().await.unwrap();
+            }
+        }
+        (true, true, true) => {
+            let expr_id = session.declare_keyexpr(KEY_EXPR).res().await.unwrap();
+            let publisher = session
+                .declare_publisher(expr_id)
+                .congestion_control(CongestionControl::Block)
+                .res()
+                .await
+                .unwrap();
+            loop {
+                publisher.put(value.clone()).res().await.unwrap();
+                c_count.fetch_add(1, Ordering::Relaxed);
+            }
+        }
+        (_, _, _) => (),
+    }
 
     if print {
-        let count = Arc::new(AtomicUsize::new(0));
-        let c_count = count.clone();
         task::spawn(async move {
             loop {
                 task::sleep(Duration::from_secs(1)).await;
@@ -114,22 +184,46 @@ async fn main() {
                 }
             }
         });
-
-        loop {
-            writer
-                .clone()
-                .congestion_control(CongestionControl::Block)
-                .await
-                .unwrap();
-            c_count.fetch_add(1, Ordering::Relaxed);
-        }
-    } else {
-        loop {
-            writer
-                .clone()
-                .congestion_control(CongestionControl::Block)
-                .await
-                .unwrap();
-        }
     }
+
+    // let writer = if use_expr {
+    //     let expr_id = session.declare_keyexpr(KEY_EXPR).res().await.unwrap();
+    //     if declare_publication {
+    //         let publisher = session.declare_publisher(expr_id).res().await.unwrap();
+    //         publisher.put(value.clone())
+    //     } else {
+    //         session.put(expr_id, value.clone())
+    //     }
+    // } else {
+    //     if declare_publication {
+    //         let publisher = session.declare_publisher(KEY_EXPR).res().await.unwrap();
+    //         publisher.put(value.clone())
+    //     } else {
+    //         session.put(KEY_EXPR, value.clone())
+    //     }
+    // };
+
+    // if print {
+    //     let count = Arc::new(AtomicUsize::new(0));
+    //     let c_count = count.clone();
+
+    //     loop {
+    //         writer
+    //             .clone()
+    //             .congestion_control(CongestionControl::Block)
+    //             .res()
+    //             .await
+    //             .unwrap();
+    //         c_count.fetch_add(1, Ordering::Relaxed);
+    //     }
+    // } else {
+    //     loop {
+    //         writer
+    //             .clone()
+    //             .congestion_control(CongestionControl::Block)
+    //             .res()
+    //             .await
+    //             .unwrap();
+    //     }
+    // }
 }

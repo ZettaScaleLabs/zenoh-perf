@@ -18,7 +18,8 @@ use std::{
     sync::atomic::{AtomicUsize, Ordering},
     time::{Duration, Instant},
 };
-use zenoh::{config::Config, prelude::Receiver};
+use zenoh::config::Config;
+use zenoh::prelude::r#async::*;
 use zenoh_protocol_core::{EndPoint, WhatAmI};
 
 #[derive(Debug, Parser)]
@@ -55,7 +56,7 @@ struct Opt {
     no_callback: bool,
 }
 
-const KEY_EXPR: &str = "/test/thr";
+const KEY_EXPR: &str = "test/thr";
 
 #[async_std::main]
 async fn main() {
@@ -93,11 +94,11 @@ async fn main() {
     let messages = Arc::new(AtomicUsize::new(0));
     let c_messages = messages.clone();
 
-    let session = zenoh::open(config).await.unwrap();
+    let session = zenoh::open(config).res().await.unwrap();
     let sub_builder = if use_expr {
-        session.subscribe(KEY_EXPR)
+        session.declare_subscriber(KEY_EXPR)
     } else {
-        session.subscribe(session.declare_expr(KEY_EXPR).await.unwrap())
+        session.declare_subscriber(session.declare_keyexpr(KEY_EXPR).res().await.unwrap())
     };
 
     if no_callback {
@@ -105,9 +106,9 @@ async fn main() {
             measure(c_messages, scenario, name, payload).await;
         });
 
-        let mut subscriber = sub_builder.reliable().push_mode().await.unwrap();
+        let subscriber = sub_builder.reliable().push_mode().res().await.unwrap();
 
-        while subscriber.receiver().recv().is_ok() {
+        while subscriber.recv().is_ok() {
             messages.fetch_add(1, Ordering::Relaxed);
         }
     } else {
@@ -117,6 +118,7 @@ async fn main() {
             })
             .reliable()
             .push_mode()
+            .res()
             .await
             .unwrap();
 

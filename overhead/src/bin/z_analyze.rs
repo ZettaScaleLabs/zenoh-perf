@@ -13,20 +13,21 @@
 //
 
 extern crate serde;
-use structopt::StructOpt;
-//use zenoh::net::ResKey::*;
 use async_std::fs;
+use clap::Parser;
 use serde::{Deserialize, Serialize};
 use std::io::Read;
-use zenoh::net::protocol::io::ZBuf;
-use zenoh::net::protocol::proto::{
-    FramePayload, TransportBody, TransportMessage, ZenohBody, ZenohMessage,
+use zenoh::buffers::reader::{HasReader, Reader};
+use zenoh::buffers::ZBuf;
+use zenoh::prelude::r#async::*;
+use zenoh_protocol::proto::{
+    FramePayload, MessageReader, TransportBody, TransportMessage, ZenohBody, ZenohMessage,
 };
 
-#[derive(Debug, StructOpt)]
-#[structopt(name = "zn_analyze")]
+#[derive(Debug, Parser)]
+#[clap(name = "zn_analyze")]
 struct Opt {
-    #[structopt(short = "j", long = "json")]
+    #[clap(short, long)]
     file: String,
 }
 
@@ -71,8 +72,8 @@ fn read_transport_messages(mut data: &[u8]) -> Vec<TransportMessage> {
         let mut buffer = vec![0u8; to_read];
         let _ = data.read_exact(&mut buffer).unwrap();
 
-        let mut zbuf = ZBuf::from(buffer);
-
+        let zbuf = ZBuf::from(buffer);
+        let mut zbuf = zbuf.reader();
         while zbuf.can_read() {
             if let Some(msg) = zbuf.read_transport_message() {
                 messages.push(msg)

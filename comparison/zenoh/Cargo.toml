@@ -1,0 +1,37 @@
+[package]
+name = "zenoh-api-changes"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+async-std = { version = "1.12.0", features = ["unstable"] }
+async-trait = "0.1.60"
+clap = { version = "4.0.30", features = ["derive"] }
+env_logger = "0.10.0"
+log = "0.4.17"
+rand = "0.8.5"
+slab = "0.4.7"
+json5 = "0.4.1"
+zenoh                = { version = "0.7.0-rc", default-features = false, features = ["unstable", "transport_tcp", "transport_udp"] }
+zenoh-util           = "0.7.0-rc"
+zenoh-core           = "0.7.0-rc"
+zenoh-cfg-properties = "0.7.0-rc"
+zenoh-protocol-core  = "0.7.0-rc"
+zenoh-buffers        = "0.7.0-rc"
+lazy_static = "1.4.0"
+git-version = "0.3.5"
+futures = "0.3.25"
+
+[features]
+shared-memory = ["zenoh/shared-memory"]
+
+[[bin]]
+name = "zenoh_pub_shm"
+path = "./src/bin/zenoh_pub_shm.rs"
+required-features = ["shared-memory"]
+
+[[bin]]
+name = "zenoh_pub_thr"
+path = "./src/bin/zenoh_pub_thr.rs"

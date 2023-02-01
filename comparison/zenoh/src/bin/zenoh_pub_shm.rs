@@ -18,9 +18,9 @@ use std::{
     time::Duration,
 };
 use std::{sync::Arc, thread};
-use zenoh::prelude::sync::*;
-use zenoh::config::Config;
 use zenoh::buffers::SharedMemoryManager;
+use zenoh::config::Config;
+use zenoh::prelude::sync::*;
 use zenoh_protocol_core::{CongestionControl, EndPoint, WhatAmI};
 
 #[derive(Debug, Parser)]

@@ -36,7 +36,6 @@ struct Opt {
     config: Option<PathBuf>,
 }
 
-
 fn main() {
     // initiate logging
     env_logger::init();

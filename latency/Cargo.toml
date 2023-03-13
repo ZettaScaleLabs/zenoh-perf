@@ -32,15 +32,15 @@ description = "Zenoh: Zero Overhead Pub/sub, Store/Query and Compute."
 maintenance = { status = "actively-developed" }
 
 [dependencies]
-async-std = { version = "=1.11.0", features = ["unstable"] }
-async-trait = "0.1.53"
-env_logger = "0.9.0"
-log = "0.4.14"
-rand = "0.8.3"
-slab = "0.4.2"
-clap = { version = "3.1.5", features = ["derive"] }
-zenoh = { version="0.6.0-dev", default-features = false, features = ["transport_tcp", "transport_udp"] }
-zenoh-util = "0.6.0-dev"
-zenoh-core = "0.6.0-dev"
-zenoh-cfg-properties = "0.6.0-dev"
-zenoh-protocol-core = "0.6.0-dev"
+async-std            = { workspace = true }
+async-trait          = { workspace = true }
+clap                 = { workspace = true }
+env_logger           = { workspace = true }
+log                  = { workspace = true }
+rand                 = { workspace = true }
+slab                 = { workspace = true }
+zenoh                = { workspace = true }
+zenoh-cfg-properties = { workspace = true }
+zenoh-core           = { workspace = true }
+zenoh-protocol       = { workspace = true }
+zenoh-util           = { workspace = true }

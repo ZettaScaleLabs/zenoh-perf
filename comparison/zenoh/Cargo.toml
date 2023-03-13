@@ -6,21 +6,21 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-async-std = { version = "1.12.0", features = ["unstable"] }
-async-trait = "0.1.64"
-clap = { version = "4.1.4", features = ["derive"] }
-env_logger = "0.10.0"
-log = "0.4.17"
-rand = "0.8.5"
-slab = "0.4.7"
-json5 = "0.4.1"
-zenoh                = { version = "0.7.0-rc", default-features = false, features = ["unstable", "transport_tcp", "transport_udp"] }
-zenoh-util           = "0.7.0-rc"
-zenoh-core           = "0.7.0-rc"
-zenoh-config         = "0.7.0-rc"
-zenoh-cfg-properties = "0.7.0-rc"
-zenoh-protocol-core  = "0.7.0-rc"
-zenoh-buffers        = "0.7.0-rc"
-lazy_static = "1.4.0"
-git-version = "0.3.5"
-futures = "0.3.26"
+async-std            = { workspace = true }
+async-trait          = { workspace = true }
+clap                 = { workspace = true }
+env_logger           = { workspace = true }
+log                  = { workspace = true }
+rand                 = { workspace = true }
+slab                 = { workspace = true }
+json5                = { workspace = true }
+zenoh                = { workspace = true }
+zenoh-util           = { workspace = true }
+zenoh-core           = { workspace = true }
+zenoh-config         = { workspace = true }
+zenoh-cfg-properties = { workspace = true }
+zenoh-protocol       = { workspace = true }
+zenoh-buffers        = { workspace = true }
+lazy_static          = { workspace = true }
+git-version          = { workspace = true }
+futures              = { workspace = true }

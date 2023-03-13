@@ -11,14 +11,10 @@ pub struct Opts {
     pub pong_topic: String,
     #[clap(long, parse(try_from_str = parse_duration))]
     pub timeout: Option<Duration>,
-
-    // public options
     #[clap(short = 'b', long, default_value = "127.0.0.1")]
     pub brokers: String,
-
     #[clap(short = 'P', long)]
     pub producer_configs: Option<Vec<KeyVal>>,
-
     #[clap(short = 'C', long)]
     pub consumer_configs: Option<Vec<KeyVal>>,
 }

@@ -9,8 +9,6 @@ pub struct Opts {
     pub topic: String,
     #[clap(long, parse(try_from_str = parse_duration))]
     pub timeout: Option<Duration>,
-    #[clap(long, value_enum, default_value = "human")]
-    pub output_format: OutputFormat,
     #[clap(short = 'b', long, default_value = "127.0.0.1")]
     pub brokers: String,
     #[clap(short = 'p', long)]
@@ -25,13 +23,6 @@ pub struct Opts {
 pub enum Mode {
     Peer,
     Client,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, ValueEnum)]
-#[clap(rename_all = "snake_case")]
-pub enum OutputFormat {
-    Human,
-    Json,
 }
 
 fn parse_duration(text: &str) -> Result<Duration> {

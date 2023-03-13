@@ -1,19 +1,18 @@
 mod opts;
 
-use async_std::{sync::Arc, task};
-use std::{
-    process,
-    sync::atomic::{AtomicUsize, Ordering},
-    time::{Duration, Instant},
-};
-
 use anyhow::{anyhow, ensure, Result};
+use async_std::{sync::Arc, task};
 use clap::Parser;
 use kafka_test::{AsyncStdStreamConsumer, DEFAULT_GROUP_ID};
 use log::{error, info, trace};
 use opts::Opts;
 use rdkafka::{
     consumer::Consumer, error::KafkaError, types::RDKafkaErrorCode, ClientConfig, Message as _,
+};
+use std::{
+    process,
+    sync::atomic::{AtomicUsize, Ordering},
+    time::{Duration, Instant},
 };
 
 #[async_std::main]
@@ -65,7 +64,6 @@ async fn run_consumer(opts: Opts) -> Result<()> {
         let msg = match result {
             Ok(msg) => msg,
             Err(E::MessageConsumption(C::UnknownTopicOrPartition)) => {
-                // retry
                 trace!("The topic {} is not created yet, retry again", opts.topic);
                 continue;
             }

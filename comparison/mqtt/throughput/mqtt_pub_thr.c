@@ -64,11 +64,6 @@ void *send_msgs(void *args) {
         pubmsg.qos = QOS;
         pubmsg.retained = 0;
         MQTTAsync_sendMessage(thr_args->client, TOPIC, &pubmsg, NULL);
-        // if ((rc = MQTTAsync_sendMessage(thr_args->client, TOPIC, &pubmsg, NULL)) != MQTTASYNC_SUCCESS)
-        // {
-        //  printf("Failed to send message, return code %d\n", rc);
-        //  //exit(EXIT_FAILURE);
-        // }
         __atomic_fetch_add(&counter, 1, __ATOMIC_RELAXED);
     }
 }
@@ -170,11 +165,6 @@ int main(int argc, char* argv[])
             pubmsg.qos = QOS;
             pubmsg.retained = 0;
             MQTTAsync_sendMessage(client, TOPIC, &pubmsg, NULL);
-            // if ((rc = MQTTAsync_sendMessage(client, TOPIC, &pubmsg, NULL)) != MQTTASYNC_SUCCESS)
-            // {
-            //  printf("Failed to send message, return code %d\n", rc);
-            //  exit(EXIT_FAILURE);
-            // }
         }
     }
 
@@ -183,5 +173,3 @@ int main(int argc, char* argv[])
     MQTTAsync_destroy(&client);
     return rc;
 }
-
-

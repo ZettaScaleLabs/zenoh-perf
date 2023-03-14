@@ -1,5 +1,5 @@
 use anyhow::Result;
-use clap::{Parser, ValueEnum};
+use clap::Parser;
 use kafka_test::DEFAULT_THROUGHPUT_TOPIC;
 use std::time::Duration;
 
@@ -13,16 +13,8 @@ pub struct Opts {
     pub brokers: String,
     #[clap(short = 'p', long)]
     pub payload_size: usize,
-
     #[clap(long, default_value = "0")]
     pub warmup_msgs: usize,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, ValueEnum)]
-#[clap(rename_all = "snake_case")]
-pub enum Mode {
-    Peer,
-    Client,
 }
 
 fn parse_duration(text: &str) -> Result<Duration> {

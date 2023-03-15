@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<CycloneDDS
+    xmlns="https://cdds.io/config"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="https://cdds.io/config https://raw.githubusercontent.com/eclipse-cyclonedds/cyclonedds/master/etc/cyclonedds.xsd"
+    >
+<Domain Id="any">
+    <General>
+        <Interfaces>
+            <!-- multicast=ture: ignore what the OS reports while using loopback -->
+            <NetworkInterface
+                name="${IFACE}"
+                address="${HOST_IP}"
+                multicast="true"
+                autodetermine="false"
+            />
+        </Interfaces>
+        <!-- up from default of 14720B, delays switching over to DDSI fragmentation -->
+        <MaxMessageSize>65500B</MaxMessageSize>
+    </General>
+    <Sizing>
+        <!-- size of receive buffer that gets reused for single-fragment data (in the
+            absence of failures), but gets consumed when there are multiple fragments;
+        default is 1MB, shrinking or growing it should affect the depth of the drop -->
+        <ReceiveBufferSize>20MB</ReceiveBufferSize>
+    </Sizing>
+    <Internal>
+        <!-- socket receive buffer overruns mean retransmits, and that'll slow things down
+            by more than a bit, so increasing this a lot from the default of "whatever the
+        kernel gives us when we ask for 1MB"should help at the upper end of the range -->
+        <SocketReceiveBufferSize min="20MB"/>
+        <Watermarks>
+            <!-- default is only 500kB, don't know if 2MB is best; I'm suspecting the
+                bandwidth-delay product at several Gb/s might be causing it to slow down at
+                largish messages because it then needs an ACK before continuing with the next
+            sample -->
+            <WhcHigh>2MB</WhcHigh>
+        </Watermarks>
+    </Internal>
+</Domain>
+</CycloneDDS>

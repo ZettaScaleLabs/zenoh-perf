@@ -1,0 +1,26 @@
+[package]
+name = "zenoh-comparison"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+async-std            = { workspace = true }
+async-trait          = { workspace = true }
+clap                 = { workspace = true }
+env_logger           = { workspace = true }
+log                  = { workspace = true }
+rand                 = { workspace = true }
+slab                 = { workspace = true }
+json5                = { workspace = true }
+zenoh                = { workspace = true }
+zenoh-util           = { workspace = true }
+zenoh-core           = { workspace = true }
+zenoh-config         = { workspace = true }
+zenoh-cfg-properties = { workspace = true }
+zenoh-protocol       = { workspace = true }
+zenoh-buffers        = { workspace = true }
+lazy_static          = { workspace = true }
+git-version          = { workspace = true }
+futures              = { workspace = true }

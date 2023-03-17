@@ -1,0 +1,35 @@
+[package]
+name = "kafka-test"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "kafka_pub_thr"
+path = "src/kafka_pub_thr/main.rs"
+
+[[bin]]
+name = "kafka_sub_thr"
+path = "src/kafka_sub_thr/main.rs"
+
+[[bin]]
+name = "kafka_ping"
+path = "src/kafka_ping/main.rs"
+
+[[bin]]
+name = "kafka_pong"
+path = "src/kafka_pong/main.rs"
+
+[dependencies]
+anyhow = "1.0.58"
+chrono = "0.4.19"
+clap = { version = "3.2.11", features = ["derive"] }
+futures = "0.3.21"
+humantime = "2.1.0"
+itertools = "0.10.3"
+log = "0.4.17"
+noisy_float = { version = "0.2.0" }
+num-traits = "0.2.15"
+once_cell = "1.13.0"
+pretty_env_logger = "0.4.0"
+async-std = { version = "=1.12.0", features = ["attributes", "unstable"] }
+rdkafka = { git = "https://github.com/fede1024/rust-rdkafka", features = ["naive-runtime"] }

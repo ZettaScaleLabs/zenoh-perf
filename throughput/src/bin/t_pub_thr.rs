@@ -18,24 +18,17 @@ use std::{
     sync::atomic::{AtomicUsize, Ordering},
     time::Duration,
 };
-use zenoh::net::{
-    link::EndPoint,
-    protocol::{
-        core::{Channel, CongestionControl, Priority, Reliability},
-        io::ZBuf,
-        proto::ZenohMessage,
-    },
-    transport::{
-        DummyTransportPeerEventHandler, TransportEventHandler, TransportManager,
-        TransportMulticast, TransportMulticastEventHandler, TransportPeer,
-        TransportPeerEventHandler, TransportUnicast,
-    },
-};
-use zenoh::{
-    config::{Config, WhatAmI},
-    prelude::KeyExpr,
-};
+use zenoh::config::Config;
 use zenoh_core::zresult::ZResult;
+use zenoh_protocol::{
+    core::{CongestionControl, Encoding, EndPoint, Priority, WhatAmI},
+    network::{
+        push::ext::{NodeIdType, QoSType},
+        NetworkMessage, Push,
+    },
+    zenoh_new::Put,
+};
+use zenoh_transport::*;
 
 struct MySH {}
 
@@ -52,13 +45,6 @@ impl TransportEventHandler for MySH {
         _transport: TransportUnicast,
     ) -> ZResult<Arc<dyn TransportPeerEventHandler>> {
         Ok(Arc::new(DummyTransportPeerEventHandler::default()))
-    }
-
-    fn new_multicast(
-        &self,
-        _transport: TransportMulticast,
-    ) -> ZResult<Arc<dyn TransportMulticastEventHandler>> {
-        panic!();
     }
 }
 
@@ -82,7 +68,7 @@ struct Opt {
     print: bool,
 
     /// configuration file (json5 or yaml)
-    #[clap(long = "conf", parse(from_os_str))]
+    #[clap(long = "conf")]
     config: Option<PathBuf>,
 }
 
@@ -118,19 +104,6 @@ async fn main() {
         transports.push(t);
     }
 
-    // Send reliable messages
-    let channel = Channel {
-        priority: Priority::Data,
-        reliability: Reliability::Reliable,
-    };
-    let congestion_control = CongestionControl::Block;
-    let key = KeyExpr::from(1);
-    let info = None;
-    let payload = ZBuf::from(vec![0u8; payload]);
-    let reply_context = None;
-    let routing_context = None;
-    let attachment = None;
-
     let count = Arc::new(AtomicUsize::new(0));
     if print {
         let c_count = count.clone();
@@ -145,19 +118,26 @@ async fn main() {
         });
     }
 
+    // Send reliable messages
+    let message: NetworkMessage = Push {
+        wire_expr: "test".into(),
+        ext_qos: QoSType::new(Priority::default(), CongestionControl::Block, false),
+        ext_tstamp: None,
+        ext_nodeid: NodeIdType::default(),
+        payload: Put {
+            payload: vec![0u8; payload].into(),
+            timestamp: None,
+            encoding: Encoding::default(),
+            ext_sinfo: None,
+            ext_unknown: vec![],
+        }
+        .into(),
+    }
+    .into();
+
     loop {
         for t in transports.iter() {
-            let message = ZenohMessage::make_data(
-                key.clone(),
-                payload.clone(),
-                channel,
-                congestion_control,
-                info.clone(),
-                routing_context,
-                reply_context.clone(),
-                attachment.clone(),
-            );
-            t.handle_message(message).unwrap();
+            t.handle_message(message.clone()).unwrap();
         }
         count.fetch_add(1, Ordering::Relaxed);
     }

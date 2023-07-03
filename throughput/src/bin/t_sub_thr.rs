@@ -19,13 +19,14 @@ use std::{
     sync::atomic::{AtomicBool, AtomicUsize, Ordering},
     time::{Duration, Instant},
 };
-use zenoh::config::{Config, WhatAmI};
-use zenoh::net::{
-    link::{EndPoint, Link},
-    protocol::proto::ZenohMessage,
-    transport::*,
-};
+use zenoh::config::Config;
 use zenoh_core::zresult::ZResult;
+use zenoh_link::Link;
+use zenoh_protocol::{
+    core::{EndPoint, WhatAmI},
+    network::NetworkMessage,
+};
+use zenoh_transport::*;
 
 // Transport Handler for the peer
 struct MySH {
@@ -81,13 +82,6 @@ impl TransportEventHandler for MySH {
         }
         Ok(Arc::new(MyMH::new(self.counter.clone())))
     }
-
-    fn new_multicast(
-        &self,
-        _transport: TransportMulticast,
-    ) -> ZResult<Arc<dyn TransportMulticastEventHandler>> {
-        panic!();
-    }
 }
 
 // Message Handler for the peer
@@ -102,7 +96,7 @@ impl MyMH {
 }
 
 impl TransportPeerEventHandler for MyMH {
-    fn handle_message(&self, _message: ZenohMessage) -> ZResult<()> {
+    fn handle_message(&self, _message: NetworkMessage) -> ZResult<()> {
         self.counter.fetch_add(1, Ordering::Relaxed);
         Ok(())
     }
@@ -139,7 +133,7 @@ struct Opt {
     scenario: String,
 
     /// configuration file (json5 or yaml)
-    #[clap(long = "conf", parse(from_os_str))]
+    #[clap(long = "conf")]
     config: Option<PathBuf>,
 }
 

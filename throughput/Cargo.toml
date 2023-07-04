@@ -42,6 +42,7 @@ rand                 = { workspace = true }
 slab                 = { workspace = true }
 zenoh                = { workspace = true }
 zenoh-buffers        = { workspace = true }
+zenoh-codec          = { workspace = true }
 zenoh-core           = { workspace = true }
 zenoh-link           = { workspace = true }
 zenoh-protocol       = { workspace = true }

@@ -19,13 +19,14 @@ use std::{
     sync::atomic::{AtomicBool, AtomicUsize, Ordering},
     time::{Duration, Instant},
 };
-use zenoh::config::{Config, WhatAmI};
-use zenoh::net::{
-    link::{EndPoint, Link},
-    protocol::proto::ZenohMessage,
-    transport::*,
-};
+use zenoh::config::Config;
 use zenoh_core::zresult::ZResult;
+use zenoh_link::Link;
+use zenoh_protocol::{
+    core::{EndPoint, WhatAmI},
+    zenoh::ZenohMessage,
+};
+use zenoh_transport::*;
 
 // Transport Handler for the peer
 struct MySH {
@@ -139,7 +140,7 @@ struct Opt {
     scenario: String,
 
     /// configuration file (json5 or yaml)
-    #[clap(long = "conf", parse(from_os_str))]
+    #[clap(long = "conf")]
     config: Option<PathBuf>,
 }
 

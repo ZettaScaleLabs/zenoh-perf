@@ -19,8 +19,7 @@ use async_std::{
 };
 use clap::Parser;
 use std::{
-    convert::TryInto,
-    io::Write,
+    convert::{TryFrom, TryInto},
     sync::atomic::{AtomicUsize, Ordering},
     time::Duration,
 };
@@ -28,12 +27,10 @@ use zenoh_buffers::{
     reader::HasReader,
     writer::{HasWriter, Writer},
 };
-use zenoh_codec::{RCodec, WCodec, Zenoh080};
+use zenoh_codec::{RCodec, WCodec, Zenoh060};
 use zenoh_protocol::{
     core::{WhatAmI, ZenohId},
-    transport::{
-        BatchSize, InitAck, InitSyn, KeepAlive, OpenAck, OpenSyn, TransportBody, TransportMessage,
-    },
+    transport::{InitSyn, OpenSyn, TransportBody, TransportMessage},
 };
 
 macro_rules! zsend {
@@ -41,19 +38,19 @@ macro_rules! zsend {
         // Create the buffer for serializing the message
         let mut buff = Vec::new();
         let mut writer = buff.writer();
-        let codec = Zenoh080::new();
+        let codec = Zenoh060::default();
 
         // Reserve 16 bits to write the length
         writer
-            .write_exact(BatchSize::MIN.to_le_bytes().as_slice())
+            .write_exact(u16::MIN.to_le_bytes().as_slice())
             .unwrap();
 
         // Serialize the message
         codec.write(&mut writer, $msg).unwrap();
 
         // Write the length
-        let num = BatchSize::MIN.to_le_bytes().len();
-        let len = BatchSize::try_from(writer.len() - num).unwrap();
+        let num = u16::MIN.to_le_bytes().len();
+        let len = u16::try_from(writer.len() - num).unwrap();
         buff[..num].copy_from_slice(len.to_le_bytes().as_slice());
 
         // Send the message on the link
@@ -70,7 +67,7 @@ macro_rules! zrecv {
         $stream.read_exact(&mut $buffer[0..to_read]).await.unwrap();
 
         let mut reader = $buffer.reader();
-        let codec = Zenoh080::new();
+        let codec = Zenoh060::default();
         let msg: TransportMessage = codec.read(&mut reader).unwrap();
         msg
     }};
@@ -89,9 +86,9 @@ async fn handle_client(mut stream: TcpStream) -> Result<(), Box<dyn std::error::
         TransportBody::InitSyn(InitSyn { is_qos, .. }) => {
             let whatami = my_whatami;
             let sn_resolution = None;
-            let cookie = ZSlice::from(vec![0u8; 8]);
+            let cookie = vec![0u8; 8].into();
             let attachment = None;
-            let mut message = TransportMessage::make_init_ack(
+            let message = TransportMessage::make_init_ack(
                 whatami,
                 my_pid,
                 sn_resolution,
@@ -100,7 +97,7 @@ async fn handle_client(mut stream: TcpStream) -> Result<(), Box<dyn std::error::
                 attachment,
             );
             // Send the InitAck
-            zsend!(message, stream).unwrap();
+            zsend!(&message, stream);
         }
         _ => panic!(),
     }
@@ -112,9 +109,9 @@ async fn handle_client(mut stream: TcpStream) -> Result<(), Box<dyn std::error::
             lease, initial_sn, ..
         }) => {
             let attachment = None;
-            let mut message = TransportMessage::make_open_ack(*lease, *initial_sn, attachment);
+            let message = TransportMessage::make_open_ack(*lease, *initial_sn, attachment);
             // Send the OpenAck
-            zsend!(message, stream).unwrap();
+            zsend!(&message, stream);
         }
         _ => panic!(),
     }
@@ -137,8 +134,8 @@ async fn handle_client(mut stream: TcpStream) -> Result<(), Box<dyn std::error::
     task::spawn(async move {
         loop {
             task::sleep(Duration::from_secs(1)).await;
-            let mut message = TransportMessage::make_keep_alive(None, None);
-            let _ = zsend!(message, c_stream);
+            let message = TransportMessage::make_keep_alive(None, None);
+            zsend!(&message, c_stream);
         }
     });
 

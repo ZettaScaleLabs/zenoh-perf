@@ -42,7 +42,7 @@ serde = "1.0.155"
 serde_json = "1.0.94"
 zenoh                = { git = "https://github.com/eclipse-zenoh/zenoh.git", version = "0.10.0-dev", default-features = false, features = ["unstable", "transport_tcp", "transport_udp"] }
 zenoh-buffers        = { git = "https://github.com/eclipse-zenoh/zenoh.git", version = "0.10.0-dev" }
-zenoh-cfg-properties = { git = "https://github.com/eclipse-zenoh/zenoh.git", version = "0.10.0-dev" }
+zenoh-codec          = { git = "https://github.com/eclipse-zenoh/zenoh.git", version = "0.10.0-dev" }
 zenoh-config         = { git = "https://github.com/eclipse-zenoh/zenoh.git", version = "0.10.0-dev" }
 zenoh-core           = { git = "https://github.com/eclipse-zenoh/zenoh.git", version = "0.10.0-dev" }
 zenoh-link           = { git = "https://github.com/eclipse-zenoh/zenoh.git", version = "0.10.0-dev" }

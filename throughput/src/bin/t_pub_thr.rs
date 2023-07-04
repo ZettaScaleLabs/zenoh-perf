@@ -18,24 +18,14 @@ use std::{
     sync::atomic::{AtomicUsize, Ordering},
     time::Duration,
 };
-use zenoh::net::{
-    link::EndPoint,
-    protocol::{
-        core::{Channel, CongestionControl, Priority, Reliability},
-        io::ZBuf,
-        proto::ZenohMessage,
-    },
-    transport::{
-        DummyTransportPeerEventHandler, TransportEventHandler, TransportManager,
-        TransportMulticast, TransportMulticastEventHandler, TransportPeer,
-        TransportPeerEventHandler, TransportUnicast,
-    },
-};
-use zenoh::{
-    config::{Config, WhatAmI},
-    prelude::KeyExpr,
-};
+use zenoh::config::Config;
+use zenoh_buffers::ZBuf;
 use zenoh_core::zresult::ZResult;
+use zenoh_protocol::{
+    core::{Channel, CongestionControl, EndPoint, Priority, Reliability, WhatAmI, WireExpr},
+    zenoh::ZenohMessage,
+};
+use zenoh_transport::*;
 
 struct MySH {}
 
@@ -82,7 +72,7 @@ struct Opt {
     print: bool,
 
     /// configuration file (json5 or yaml)
-    #[clap(long = "conf", parse(from_os_str))]
+    #[clap(long = "conf")]
     config: Option<PathBuf>,
 }
 
@@ -124,7 +114,7 @@ async fn main() {
         reliability: Reliability::Reliable,
     };
     let congestion_control = CongestionControl::Block;
-    let key = KeyExpr::from(1);
+    let key = WireExpr::from(1);
     let info = None;
     let payload = ZBuf::from(vec![0u8; payload]);
     let reply_context = None;

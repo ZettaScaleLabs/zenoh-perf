@@ -21,7 +21,7 @@ use std::{
 use zenoh::config::Config;
 use zenoh_core::zresult::ZResult;
 use zenoh_protocol::{
-    core::{CongestionControl, Encoding, EndPoint, Priority, WhatAmI},
+    core::{CongestionControl, Encoding, EndPoint, Priority, WhatAmI, WireExpr},
     network::{
         push::ext::{NodeIdType, QoSType},
         NetworkMessage, Push,
@@ -120,7 +120,7 @@ async fn main() {
 
     // Send reliable messages
     let message: NetworkMessage = Push {
-        wire_expr: "test".into(),
+        wire_expr: WireExpr::from(1),
         ext_qos: QoSType::new(Priority::default(), CongestionControl::Block, false),
         ext_tstamp: None,
         ext_nodeid: NodeIdType::default(),

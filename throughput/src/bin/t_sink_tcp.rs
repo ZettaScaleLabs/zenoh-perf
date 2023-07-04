@@ -24,36 +24,40 @@ use std::{
     sync::atomic::{AtomicUsize, Ordering},
     time::Duration,
 };
-use zenoh::net::protocol::{
-    io::{WBuf, ZBuf, ZSlice},
-    proto::{InitSyn, OpenSyn, TransportBody, TransportMessage},
+use zenoh_buffers::{
+    reader::HasReader,
+    writer::{HasWriter, Writer},
 };
-use zenoh::{
-    config::WhatAmI,
-    prelude::{MessageReader, MessageWriter, PeerId},
+use zenoh_codec::{RCodec, WCodec, Zenoh080};
+use zenoh_protocol::{
+    core::{WhatAmI, ZenohId},
+    transport::{
+        BatchSize, InitAck, InitSyn, KeepAlive, OpenAck, OpenSyn, TransportBody, TransportMessage,
+    },
 };
-use zenoh_buffers::traits::reader::HasReader;
 
 macro_rules! zsend {
     ($msg:expr, $stream:expr) => {{
         // Create the buffer for serializing the message
-        let mut wbuf = WBuf::new(32, false);
+        let mut buff = Vec::new();
+        let mut writer = buff.writer();
+        let codec = Zenoh080::new();
+
         // Reserve 16 bits to write the length
-        assert!(wbuf.write(&[0u8, 0u8]).unwrap() > 0);
+        writer
+            .write_exact(BatchSize::MIN.to_le_bytes().as_slice())
+            .unwrap();
+
         // Serialize the message
-        assert!(wbuf.write_transport_message(&mut $msg));
-        // Write the length on the first 16 bits
-        let length: u16 = wbuf.len() as u16 - 2;
-        let bits = wbuf.get_first_slice_mut(..2);
-        bits.copy_from_slice(&length.to_le_bytes());
-        let mut bytes = vec![0u8; wbuf.len()];
-        wbuf.reader().copy_into_slice(&mut bytes[..]);
+        codec.write(&mut writer, $msg).unwrap();
+
+        // Write the length
+        let num = BatchSize::MIN.to_le_bytes().len();
+        let len = BatchSize::try_from(writer.len() - num).unwrap();
+        buff[..num].copy_from_slice(len.to_le_bytes().as_slice());
 
         // Send the message on the link
-        let res = $stream.write_all(&bytes).await;
-        log::trace!("Sending {:?}: {:?}", $msg, res);
-
-        res
+        $stream.write_all(&buff).await.unwrap();
     }};
 }
 
@@ -64,14 +68,17 @@ macro_rules! zrecv {
         // Decode the total amount of bytes that we are expected to read
         let to_read = u16::from_le_bytes(length) as usize;
         $stream.read_exact(&mut $buffer[0..to_read]).await.unwrap();
-        let zbuf = ZBuf::from($buffer.clone());
-        zbuf.reader().read_transport_message().unwrap()
+
+        let mut reader = $buffer.reader();
+        let codec = Zenoh080::new();
+        let msg: TransportMessage = codec.read(&mut reader).unwrap();
+        msg
     }};
 }
 
 async fn handle_client(mut stream: TcpStream) -> Result<(), Box<dyn std::error::Error>> {
     let my_whatami = WhatAmI::Router;
-    let my_pid = PeerId::rand();
+    let my_pid = ZenohId::rand();
 
     // Create the reading buffer
     let mut buffer = vec![0u8; 16_000_000];

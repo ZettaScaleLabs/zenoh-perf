@@ -23,8 +23,12 @@ use zenoh::config::Config;
 use zenoh_core::zresult::ZResult;
 use zenoh_link::Link;
 use zenoh_protocol::{
-    core::{EndPoint, WhatAmI},
-    network::NetworkMessage,
+    core::{CongestionControl, EndPoint, Priority, WhatAmI, WireExpr},
+    network::{
+        declare::ext::{NodeIdType, QoSType},
+        subscriber::ext::SubscriberInfo,
+        Declare, DeclareBody, DeclareSubscriber, NetworkMessage,
+    },
 };
 use zenoh_transport::*;
 
@@ -53,8 +57,22 @@ impl TransportEventHandler for MySH {
     fn new_unicast(
         &self,
         _peer: TransportPeer,
-        _transport: TransportUnicast,
+        transport: TransportUnicast,
     ) -> ZResult<Arc<dyn TransportPeerEventHandler>> {
+        // Declare Subscriber
+        let message: NetworkMessage = Declare {
+            ext_qos: QoSType::new(Priority::default(), CongestionControl::Block, false),
+            ext_tstamp: None,
+            ext_nodeid: NodeIdType::default(),
+            body: DeclareBody::DeclareSubscriber(DeclareSubscriber {
+                id: 0,
+                wire_expr: WireExpr::from("test/thr"),
+                ext_info: SubscriberInfo::default(),
+            }),
+        }
+        .into();
+        transport.handle_message(message.clone()).unwrap();
+
         if !self.active.swap(true, Ordering::Acquire) {
             let count = self.counter.clone();
             let scenario = self.scenario.clone();
@@ -173,6 +191,7 @@ async fn main() {
             let _t = manager.open_transport_unicast(e.clone()).await.unwrap();
         }
     }
+
     // Stop forever
     future::pending::<()>().await;
 }

@@ -24,7 +24,7 @@ use zenoh_protocol::{
     core::{CongestionControl, Encoding, EndPoint, Priority, WhatAmI, WireExpr},
     network::{
         push::ext::{NodeIdType, QoSType},
-        NetworkMessage, Push,
+        Declare, DeclareBody, DeclareKeyExpr, Mapping, NetworkMessage, Push,
     },
     zenoh_new::Put,
 };
@@ -44,7 +44,7 @@ impl TransportEventHandler for MySH {
         _peer: TransportPeer,
         _transport: TransportUnicast,
     ) -> ZResult<Arc<dyn TransportPeerEventHandler>> {
-        Ok(Arc::new(DummyTransportPeerEventHandler::default()))
+        Ok(Arc::new(DummyTransportPeerEventHandler))
     }
 }
 
@@ -102,6 +102,25 @@ async fn main() {
     for e in endpoint {
         let t = manager.open_transport_unicast(e.clone()).await.unwrap();
         transports.push(t);
+    }
+
+    // Declare WireExpr
+    let message: NetworkMessage = Declare {
+        ext_qos: QoSType::new(Priority::default(), CongestionControl::Block, false),
+        ext_tstamp: None,
+        ext_nodeid: NodeIdType::default(),
+        body: DeclareBody::DeclareKeyExpr(DeclareKeyExpr {
+            id: 1,
+            wire_expr: WireExpr {
+                scope: 0,
+                suffix: "test/thr".into(),
+                mapping: Mapping::Sender,
+            },
+        }),
+    }
+    .into();
+    for t in transports.iter() {
+        t.handle_message(message.clone()).unwrap();
     }
 
     let count = Arc::new(AtomicUsize::new(0));

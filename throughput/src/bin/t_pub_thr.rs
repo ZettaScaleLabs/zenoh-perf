@@ -46,6 +46,13 @@ impl TransportEventHandler for MySH {
     ) -> ZResult<Arc<dyn TransportPeerEventHandler>> {
         Ok(Arc::new(DummyTransportPeerEventHandler))
     }
+
+    fn new_multicast(
+        &self,
+        _: TransportMulticast,
+    ) -> ZResult<Arc<dyn TransportMulticastEventHandler>> {
+        panic!();
+    }
 }
 
 #[derive(Debug, Parser)]

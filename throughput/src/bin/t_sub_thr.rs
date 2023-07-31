@@ -102,6 +102,13 @@ impl TransportEventHandler for MySH {
         }
         Ok(Arc::new(MyMH::new(self.counter.clone())))
     }
+
+    fn new_multicast(
+        &self,
+        _: TransportMulticast,
+    ) -> ZResult<Arc<dyn TransportMulticastEventHandler>> {
+        panic!();
+    }
 }
 
 // Message Handler for the peer

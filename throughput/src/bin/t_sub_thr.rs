@@ -25,8 +25,10 @@ use zenoh_link::Link;
 use zenoh_protocol::{
     core::{CongestionControl, EndPoint, Priority, WhatAmI, WireExpr},
     network::{
-        declare::ext::{NodeIdType, QoSType},
-        subscriber::ext::SubscriberInfo,
+        declare::{
+            ext::{NodeIdType, QoSType},
+            subscriber::ext::SubscriberInfo,
+        },
         Declare, DeclareBody, DeclareSubscriber, NetworkMessage,
     },
 };

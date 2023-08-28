@@ -127,7 +127,7 @@ async fn main() {
     }
     .into();
     for t in transports.iter() {
-        t.handle_message(message.clone()).unwrap();
+        t.schedule(message.clone()).unwrap();
     }
 
     let count = Arc::new(AtomicUsize::new(0));
@@ -163,7 +163,7 @@ async fn main() {
 
     loop {
         for t in transports.iter() {
-            t.handle_message(message.clone()).unwrap();
+            t.schedule(message.clone()).unwrap();
         }
         count.fetch_add(1, Ordering::Relaxed);
     }

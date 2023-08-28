@@ -73,7 +73,7 @@ impl TransportEventHandler for MySH {
             }),
         }
         .into();
-        transport.handle_message(message.clone()).unwrap();
+        transport.schedule(message.clone()).unwrap();
 
         if !self.active.swap(true, Ordering::Acquire) {
             let count = self.counter.clone();

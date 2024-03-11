@@ -1,0 +1,42 @@
+
+cmake_minimum_required(VERSION 3.16)
+project(zenohcxx_perfs LANGUAGES C CXX)
+set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
+include(helpers)
+set_default_build_type(Release)
+configure_include_project(ZENOHCXX_ZENOHC zenohc zenohc::lib "../../zenoh-c" zenohc "https://github.com/eclipse-zenoh/zenoh-c" "main")
+configure_include_project(ZENOHPICO zenohpico zenohpico "../../zenoh-pico" zenohc "https://github.com/eclipse-zenoh/zenoh-pico" "main")
+configure_include_project(ZENOHCXX zenohcxx zenohcxx ".." zenohcxx "https://github.com/eclipse-zenoh/zenoh-cpp" "main")
+add_custom_target(perfs ALL)
+
+add_custom_target(perfs_zenohc)
+add_custom_target(perfs_zenohpico)
+add_dependencies(perfs perfs_zenohc)
+add_dependencies(perfs perfs_zenohpico)
+
+function(add_perftest file mode lib)
+	get_filename_component(filename ${file} NAME_WE)
+	set(target ${filename}_${mode})
+	add_executable(${target} EXCLUDE_FROM_ALL ${file})
+	set_target_properties(${target} PROPERTIES 
+		OUTPUT_NAME ${filename}
+		RUNTIME_OUTPUT_DIRECTORY ${mode})
+	add_dependencies(perfs_${mode} ${target})
+	add_dependencies(${target} ${lib})
+    target_link_libraries(${target} PUBLIC ${lib})
+	set_property(TARGET ${target} PROPERTY LANGUAGE CXX)
+	set_property(TARGET ${target} PROPERTY CXX_STANDARD 17)
+endfunction()
+
+function(add_perftests glob mode lib)
+	file(GLOB files ${glob})
+	foreach(file ${files})
+		add_perftest(${file} ${mode} ${lib})
+	endforeach()
+endfunction()
+
+# zenohcxx examples compiled with C++ compiler with zenohc
+add_perftests("${CMAKE_CURRENT_SOURCE_DIR}/src/*.cxx" zenohc zenohcxx::zenohc::lib)
+
+# zenohcxx examples compiled with C++ compiler with zenohpico
+add_perftests("${CMAKE_CURRENT_SOURCE_DIR}/src/*.cxx" zenohpico zenohcxx::zenohpico)

@@ -23,7 +23,8 @@ members = [
 ]
 
 exclude = [
-  "bindings/zenoh-c/build/_deps/zenohc-build/release"
+  "bindings/zenoh-c/build/_deps/zenohc-build/release",
+  "bindings/zenoh-cpp/build/_deps/zenohc-build/release"
 ]
 
 [profile.release]

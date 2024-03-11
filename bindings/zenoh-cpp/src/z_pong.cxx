@@ -21,13 +21,11 @@ using namespace zenoh;
 int _main(int, char **) {
     Config config;
 
-    std::cout << "Opening session...\n";
     auto session = expect<Session>(open(std::move(config)));
 
     auto pub = expect<Publisher>(session.declare_publisher("test/pong"));
     auto sub = expect<Subscriber>(session.declare_subscriber(
         "test/ping", [pub = std::move(pub)](const Sample &sample) mutable { pub.put(sample.get_payload()); }));
-    std::cout << "Pong ready, press any key to quit\n";
     std::getchar();
     return 0;
 }

@@ -16,17 +16,22 @@
 #include <condition_variable>
 #include <iostream>
 #include <mutex>
+#include <thread>
 
 #include "zenoh.hxx"
 using namespace zenoh;
 
+#define DEFAULT_PKT_SIZE 8
+#define DEFAULT_INTERVAL 0.1
+
+#define handle_error_en(en, msg) \
+    do { errno = en; perror(msg); exit(EXIT_FAILURE); } while (0)
+
 struct args_t {
-    unsigned char help_requested;
-    unsigned int number_of_pings;
-    unsigned int size;
-    unsigned int warmup_ms;
-    unsigned int timeout_ms;
-    char* config_path;
+    unsigned char help_requested;        // -h
+    unsigned int size;                   // -s
+    float interval;                      // -i
+    char* config_path;                   // -c
 };
 struct args_t parse_args(int argc, char** argv);
 
@@ -38,11 +43,9 @@ int _main(int argc, char** argv) {
 
     if (args.help_requested) {
         std::cout << "\
-		-n (optional, int, default=100): the number of pings to be attempted\n\
-		-s (optional, int, default=8): the size of the payload embedded in the ping and repeated by the pong\n\
-		-w (optional, int, default=1000): the warmup time in ms during which pings will be emitted but not measured\n\
-		-t (optional, int, default=100): the timeout for any individual ping, in ms.\n\
-		-c (optional, string, disabled when backed by pico): the path to a configuration file for the session. If this option isn't passed, the default configuration will be used.\n\
+        -s (optional, int, default=" << DEFAULT_PKT_SIZE << "): the size of the payload embedded in the ping and repeated by the pong\n\
+        -i (optional, float, default="<< DEFAULT_INTERVAL << "): the interval in seconds between ping messages\n\
+        -c (optional, string, disabled when backed by pico): the path to a configuration file for the session. If this option isn't passed, the default configuration will be used.\n\
 		";
         return 1;
     }
@@ -52,7 +55,6 @@ int _main(int argc, char** argv) {
         config = expect<Config>(config_from_file(args.config_path));
     }
 #endif
-    std::cout << "Opening session...\n";
     auto session = expect<Session>(open(std::move(config)));
 
     auto sub = expect<Subscriber>(
@@ -60,24 +62,17 @@ int _main(int argc, char** argv) {
     auto pub = expect<Publisher>(session.declare_publisher("test/ping"));
     std::vector<char> data(args.size);
     std::unique_lock lock(mutex);
-    if (args.warmup_ms) {
-        auto end = std::chrono::steady_clock::now() + (1ms * args.warmup_ms);
-        while (std::chrono::steady_clock::now() < end) {
-            pub.put(BytesView(data.data(), data.size()));
-            condvar.wait_for(lock, 1s);
-        }
-    }
-    for (unsigned int i = 0; i < args.number_of_pings; i++) {
+
+    while(true) {
+        std::this_thread::sleep_for(std::chrono::milliseconds((unsigned long)(args.interval * 1000)));
         auto start = std::chrono::steady_clock::now();
         pub.put(BytesView(data.data(), data.size()));
         if (condvar.wait_for(lock, 1s) == std::cv_status::timeout) {
-            std::cout << "TIMEOUT seq=" << i << "\n";
             continue;
         }
         auto rtt =
             std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - start).count();
-        std::cout << args.size << " bytes: seq=" << i << " rtt=" << rtt << "µs"
-                  << " lat=" << rtt / 2 << "µs\n";
+        std::cout << args.size << "," << rtt / 2 << "\n";
     }
     lock.unlock();
     return 0;
@@ -106,31 +101,19 @@ struct args_t parse_args(int argc, char** argv) {
         }
     }
     char* arg = getopt(argc, argv, 's');
-    unsigned int size = 8;
+    unsigned int size = DEFAULT_PKT_SIZE;
     if (arg) {
         size = atoi(arg);
     }
-    arg = getopt(argc, argv, 'n');
-    unsigned int number_of_pings = 100;
+    float interval = DEFAULT_INTERVAL;
+    arg = getopt(argc, argv, 'i');
     if (arg) {
-        number_of_pings = atoi(arg);
-    }
-    arg = getopt(argc, argv, 'w');
-    unsigned int warmup_ms = 1000;
-    if (arg) {
-        warmup_ms = atoi(arg);
-    }
-    arg = getopt(argc, argv, 't');
-    unsigned int timeout_ms = 100;
-    if (arg) {
-        timeout_ms = atoi(arg);
-    }
+        interval = atof(arg);
+    } 
     struct args_t args;
     args.help_requested = 0;
-    args.number_of_pings = number_of_pings;
     args.size = size;
-    args.warmup_ms = warmup_ms;
-    args.timeout_ms = timeout_ms;
+    args.interval = interval;
     args.config_path = getopt(argc, argv, 'c');
     return args;
 }

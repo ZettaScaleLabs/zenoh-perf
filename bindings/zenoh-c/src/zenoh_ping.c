@@ -6,9 +6,8 @@
 #include "zenoh.h"
 
 #define DEFAULT_PKT_SIZE 8
-#define DEFAULT_PING_NB 100
-#define DEFAULT_WARMUP_MS 1000
 #define PING_TIMEOUT_SEC 1
+#define DEFAULT_INTERVAL 0.1
 
 #define handle_error_en(en, msg) \
     do { errno = en; perror(msg); exit(EXIT_FAILURE); } while (0)
@@ -21,9 +20,8 @@ void drop(void* context) { z_condvar_free(&cond); }
 
 struct args_t {
     unsigned int size;             // -s
-    unsigned int number_of_pings;  // -n
-    unsigned int warmup_ms;        // -w
     char* config_path;             // -c
+    float interval;                // -i
     uint8_t help_requested;        // -h
 };
 struct args_t parse_args(int argc, char** argv);
@@ -33,12 +31,11 @@ int main(int argc, char** argv) {
     if (args.help_requested) {
         printf(
             "\
-		-n (optional, int, default=%d): the number of pings to be attempted\n\
-		-s (optional, int, default=%d): the size of the payload embedded in the ping and repeated by the pong\n\
-		-w (optional, int, default=%d): the warmup time in ms during which pings will be emitted but not measured\n\
+        -s (optional, int, default=%d): the size of the payload embedded in the ping and repeated by the pong\n\
+        -i (optional, float, default=%f): the interval in seconds between ping messages\n\
 		-c (optional, string): the path to a configuration file for the session. If this option isn't passed, the default configuration will be used.\n\
 		",
-            DEFAULT_PKT_SIZE, DEFAULT_PING_NB, DEFAULT_WARMUP_MS);
+            DEFAULT_PKT_SIZE, DEFAULT_INTERVAL);
         return 1;
     }
     z_mutex_init(&mutex);
@@ -55,35 +52,17 @@ int main(int argc, char** argv) {
         data[i] = i % 10;
     }
     z_mutex_lock(&mutex);
-    if (args.warmup_ms) {
-        printf("Warming up for %dms...\n", args.warmup_ms);
-        z_clock_t warmup_start = z_clock_now();
-
-        unsigned long elapsed_us = 0;
-        while (elapsed_us < args.warmup_ms * 1000) {
-            z_publisher_put(z_loan(pub), data, args.size, NULL);
-            int s = z_condvar_wait(&cond, &mutex);
-            if (s != 0) {
-                handle_error_en(s, "z_condvar_wait");
-            }
-            elapsed_us = z_clock_elapsed_us(&warmup_start);
-        }
-    }
-    unsigned long* results = z_malloc(sizeof(unsigned long) * args.number_of_pings);
-    for (int i = 0; i < args.number_of_pings; i++) {
+    while(1) {
+        z_sleep_ms(args.interval * 1000);
         z_clock_t measure_start = z_clock_now();
         z_publisher_put(z_loan(pub), data, args.size, NULL);
         int s = z_condvar_wait(&cond, &mutex);
         if (s != 0) {
             handle_error_en(s, "z_condvar_wait");
         }
-        results[i] = z_clock_elapsed_us(&measure_start);
+        unsigned long elapsed = z_clock_elapsed_us(&measure_start);
+        printf("%g,%lu\n", args.interval, elapsed/2);
     }
-    for (int i = 0; i < args.number_of_pings; i++) {
-        printf("%d bytes: seq=%d rtt=%luµs, lat=%luµs\n", args.size, i, results[i], results[i] / 2);
-    }
-    z_mutex_unlock(&mutex);
-    z_free(results);
     z_free(data);
     z_drop(z_move(sub));
     z_drop(z_move(pub));
@@ -115,19 +94,13 @@ struct args_t parse_args(int argc, char** argv) {
     if (arg) {
         size = atoi(arg);
     }
-    arg = getopt(argc, argv, 'n');
-    unsigned int number_of_pings = DEFAULT_PING_NB;
+    arg = getopt(argc, argv, 'i');
+    float interval = DEFAULT_INTERVAL;
     if (arg) {
-        number_of_pings = atoi(arg);
-    }
-    arg = getopt(argc, argv, 'w');
-    unsigned int warmup_ms = DEFAULT_WARMUP_MS;
-    if (arg) {
-        warmup_ms = atoi(arg);
+        interval = atof(arg);
     }
     return (struct args_t){.help_requested = 0,
                            .size = size,
-                           .number_of_pings = number_of_pings,
-                           .warmup_ms = warmup_ms,
+                           .interval = interval,
                            .config_path = getopt(argc, argv, 'c')};
 }

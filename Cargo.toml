@@ -22,6 +22,10 @@ members = [
   "comparison/zenoh"
 ]
 
+exclude = [
+  "binding-perfs/zenoh-c/build/_deps/zenohc-build/release"
+]
+
 [profile.release]
 debug=false
 lto="fat"

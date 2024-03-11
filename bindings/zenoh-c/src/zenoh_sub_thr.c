@@ -12,6 +12,7 @@
 //   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 //
 #include <stdio.h>
+#include <string.h>
 
 #include "zenoh.h"
 
@@ -21,55 +22,47 @@ typedef struct {
     volatile unsigned long count;
     volatile unsigned long finished_rounds;
     z_clock_t start;
-    z_clock_t first_start;
-    bool started;
+    bool sleep;
 } z_stats_t;
 
 z_stats_t *z_stats_make() {
     z_stats_t *stats = z_malloc(sizeof(z_stats_t));
     stats->count = 0;
-    stats->finished_rounds = 0;
-    stats->started = false;
+    stats->sleep = false;
     return stats;
 }
 
 void on_sample(const z_sample_t *sample, void *context) {
     z_stats_t *stats = (z_stats_t *)context;
-    if (stats->count == 0) {
-        stats->start = z_clock_now();
-        if (!stats->started) {
-            stats->first_start = stats->start;
-            stats->started = true;
-        }
+    if (stats->sleep) {
         stats->count++;
-    } else if (stats->count < N) {
-        stats->count++;
-    } else {
-        stats->finished_rounds++;
-        printf("%f msg/s\n", 1000.0 * N / z_clock_elapsed_ms(&stats->start));
-        stats->count = 0;
     }
 }
 void drop_stats(void *context) {
     const z_stats_t *stats = (z_stats_t *)context;
-    const unsigned long sent_messages = N * stats->finished_rounds + stats->count;
-    double elapsed_s = z_clock_elapsed_s(&stats->first_start);
-    printf("Stats being dropped after unsubscribing: sent %ld messages over %f seconds (%f msg/s)\n", sent_messages,
-           elapsed_s, (double)sent_messages / elapsed_s);
     z_free(context);
 }
 
+struct args_t {
+    unsigned int size;             // -s
+    char* config_path;             // -c
+    uint8_t help_requested;        // -h
+};
+struct args_t parse_args(int argc, char** argv);
+
 int main(int argc, char **argv) {
-    z_owned_config_t config = z_config_default();
-    if (argc > 1) {
-        if (zc_config_insert_json(z_loan(config), Z_CONFIG_CONNECT_KEY, argv[1]) < 0) {
-            printf(
-                "Couldn't insert value `%s` in configuration at `%s`. This is likely because `%s` expects a "
-                "JSON-serialized list of strings\n",
-                argv[1], Z_CONFIG_CONNECT_KEY, Z_CONFIG_CONNECT_KEY);
-            exit(-1);
-        }
+    struct args_t args = parse_args(argc, argv);
+    if (args.help_requested) {
+        printf(
+            "\
+        -s (required, int): the size of the put message in bytes\n\
+        -c (optional, string): the path to a configuration file for the session. If this option isn't passed, the default configuration will be used.\n\
+		"
+        );
+        return 1;
     }
+
+    z_owned_config_t config = args.config_path ? zc_config_from_file(args.config_path) : z_config_default();
 
     z_owned_session_t s = z_open(z_move(config));
     if (!z_check(s)) {
@@ -87,13 +80,51 @@ int main(int argc, char **argv) {
         exit(-1);
     }
 
-    char c = 0;
-    while (c != 'q') {
-        c = fgetc(stdin);
+    while (1) {
+        context->count = 0;
+        context->start = z_clock_now();
+        context->sleep = true;
+        z_sleep_s(1);
+        context->sleep = false;
+        unsigned long elapsed = z_clock_elapsed_ms(&context->start);
+        printf("%d,%.3f\n", args.size, (float)(context->count * 1000) / elapsed);
     }
 
     z_undeclare_subscriber(z_move(sub));
     z_undeclare_keyexpr(z_loan(s), z_move(ke));
     z_close(z_move(s));
     return 0;
+}
+
+char* getopt(int argc, char** argv, char option) {
+    for (int i = 0; i < argc; i++) {
+        size_t len = strlen(argv[i]);
+        if (len >= 2 && argv[i][0] == '-' && argv[i][1] == option) {
+            if (len > 2 && argv[i][2] == '=') {
+                return argv[i] + 3;
+            } else if (i + 1 < argc) {
+                return argv[i + 1];
+            }
+        }
+    }
+    return NULL;
+}
+
+struct args_t parse_args(int argc, char** argv) {
+    for (int i = 0; i < argc; i++) {
+        if (strcmp(argv[i], "-h") == 0) {
+            return (struct args_t){.help_requested = 1};
+        }
+    }
+    char* arg = getopt(argc, argv, 's');
+    unsigned int size;
+    if (arg) {
+        size = atoi(arg);
+    }
+    else {
+        return (struct args_t){.help_requested = 1};
+    }
+    return (struct args_t){.help_requested = 0,
+                           .size = size,
+                           .config_path = getopt(argc, argv, 'c')};
 }

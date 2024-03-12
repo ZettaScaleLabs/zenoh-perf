@@ -5,6 +5,8 @@ TIMEOUT=10s
 rm -rf $LOG_DIR &> /dev/null
 mkdir -p $LOG_DIR
 
+export ZENOH_RUNTIME_THREADS="tx=1;rx=1;net=1;acceptor=1;application=1"
+
 for branch in "main" "tokio"; do
     LOG_FILE=${LOG_DIR}/${branch}.log
     rm $LOG_FILE &> /dev/null

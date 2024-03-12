@@ -5,6 +5,7 @@ TIMEOUT=10s
 rm -rf $LOG_DIR &> /dev/null
 mkdir -p $LOG_DIR
 
+export ASYNC_STD_THREAD_COUNT=1
 export ZENOH_RUNTIME_THREADS="tx=1;rx=1;net=1;acceptor=1;application=1"
 base="zenohc"
 

@@ -19,7 +19,6 @@ taskset -c 0,2 ./zenoh-c/build/zenoh_pong -c ./config/peer-listen-tx1.json5
 sleep 1 && taskset -c 1,3 ./zenoh-c/build/zenoh_ping -c ./config/peer-connect-tx1.json5 -s 64 -i 0 > $LOG_FILE
 sleep 1 && sleep $TIMEOUT
 EOL
-<<<<<<< HEAD
 pkill zenoh_ping
 pkill zenoh_pong
 
@@ -50,8 +49,4 @@ EOL
 # for PAYLOAD in 8 16 32 64 128 256 512 1024 2048 4096 8192 16384 32768; do
 for PAYLOAD in 8 32 128 512 2048 8192 32768 131072 524288 2097152 8388608 33554432; do
     run_throughput $PAYLOAD
-=======
-    pkill zenoh_ping
-    pkill zenoh_pong
->>>>>>> f7a1eee (Add pkill)
 done

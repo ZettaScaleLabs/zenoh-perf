@@ -37,7 +37,9 @@ parser.add_argument('--listen', '-l', dest='listen',
                     action='append',
                     type=str,
                     help='Endpoints to listen on.')
-parser.add_argument('payload_size',
+parser.add_argument('--size', '-s', dest='payload_size',
+                    metavar='PAYLOAD_SIZE',
+                    default=8,
                     type=int,
                     help='Sets the size of the payload to publish.')
 parser.add_argument('--config', '-c', dest='config',

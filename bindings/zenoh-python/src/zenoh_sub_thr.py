@@ -37,12 +37,11 @@ parser.add_argument('--listen', '-l', dest='listen',
                     action='append',
                     type=str,
                     help='Endpoints to listen on.')
-parser.add_argument('--number', '-n', dest='number',
-                    default=50000,
-                    metavar='NUMBER',
-                    action='append',
+parser.add_argument('--size', '-s', dest='payload_size',
+                    metavar='PAYLOAD_SIZE',
+                    required=True,
                     type=int,
-                    help='Number of messages in each throughput measurements.')
+                    help='Size of each put message in bytes.')
 parser.add_argument('--config', '-c', dest='config',
                     metavar='FILE',
                     type=str,
@@ -56,37 +55,19 @@ if args.connect is not None:
     conf.insert_json5(zenoh.config.CONNECT_KEY, json.dumps(args.connect))
 if args.listen is not None:
     conf.insert_json5(zenoh.config.LISTEN_KEY, json.dumps(args.listen))
-n = args.number
+size = args.payload_size
 
-
-
-batch_count = 0
 count = 0
 start = None
-global_start = None
+sleeping = False
 
 def listener(sample):
-    global n, count, batch_count, start, global_start
-    if count == 0:
-        start = time.time()
-        if global_start is None:
-            global_start = start
+    global count, sleeping
+    if sleeping:
         count += 1
-    elif count < n:
-        count += 1
-    else:
-        stop = time.time()
-        print(f"{n / (stop - start):.6f} msgs/sec")
-        batch_count += 1
-        count = 0
-
-def report():
-    global n, m, count, batch_count,  global_start
-    end = time.time()
-    total = batch_count * n + count
-    print(f"Received {total} messages in {end - global_start}: averaged {total / (end - global_start):.6f} msgs/sec")
 
 def main():
+    global count, start, sleeping
     # initiate logging
     zenoh.init_logger()
 
@@ -94,14 +75,21 @@ def main():
 
     # By explicitly constructing the `Closure`, the `Queue` that's normally inserted between the callback and zenoh is removed.
     # Only do this if your callback runs faster than the minimum expected delay between two samples.
-    sub = session.declare_subscriber("test/thr", zenoh.Closure((listener, report)), reliability=Reliability.RELIABLE())
+    sub = session.declare_subscriber("test/thr", zenoh.Closure((listener, lambda *args: None)), reliability=Reliability.RELIABLE())
 
-    print("Enter 'q' to quit...")
-    c = '\0'
-    while c != 'q':
-        c = sys.stdin.read(1)
-        if c == '':
-            time.sleep(1)
+    count = 0
+    sleeping = True
+    start = time.time()
+    while True:
+        time.sleep(1)
+        if count > 0:
+            sleeping = False
+            end=time.time()
+            print(f"{size},{(count / (end - start)):.3f}")
+            # reset counter and timer
+            count = 0
+            sleeping = True
+            start = time.time()
 
     sub.undeclare()
     session.close()

@@ -13,4 +13,6 @@ taskset -c 0,2 ./zenoh-c/build-${branch}/zenoh_pong -c ./config/peer-listen.json
 sleep 1 && taskset -c 1,3 ./zenoh-c/build-${branch}/zenoh_ping -c ./config/peer-connect.json5 -s 64 -i 0 > $LOG_FILE
 sleep 1 && sleep $TIMEOUT
 EOL
+    pkill zenoh_ping
+    pkill zenoh_pong
 done

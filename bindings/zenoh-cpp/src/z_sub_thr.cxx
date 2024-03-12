@@ -13,101 +13,117 @@
 //
 #include <stdio.h>
 #include <chrono>
+#include <thread>
 
-#include "getargs.h"
 #include "zenoh.hxx"
 using namespace zenoh;
 
 #define N 1000000
 
+
 struct Stats {
     volatile unsigned long count = 0;
-    volatile unsigned long finished_rounds = 0;
     std::chrono::steady_clock::time_point start = {};
-    std::chrono::steady_clock::time_point first_start = {};
-    std::chrono::steady_clock::time_point end = {};
+    volatile bool sleep = false;
 
     void operator()(const Sample &) {
-        if (count == 0) {
-            start = std::chrono::steady_clock::now();
-            if (first_start == std::chrono::steady_clock::time_point()) {
-                first_start = start;
-            }
+        if(sleep) {
             count++;
-        } else if (count < N) {
-            count++;
-        } else {
-            finished_rounds++;
-            auto elapsed_us =
-                std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - start).count();
-            std::cout << static_cast<double>(N) * 1000000.0 / static_cast<double>(elapsed_us) << " msg/s\n";
-            count = 0;
         }
     }
 
-    void operator()() { end = std::chrono::steady_clock::now(); }
-
-    void print() const {
-        auto elapsed_s =
-            static_cast<double>(std::chrono::duration_cast<std::chrono::microseconds>(end - first_start).count()) /
-            1000000.0;
-        const unsigned long sent_messages = N * finished_rounds + count;
-        std::cout << "Sent " << sent_messages << " messages over " << elapsed_s << " seconds ("
-                  << static_cast<double>(sent_messages) / elapsed_s << " msg/s)\n";
-    }
+    void operator()() { /* do nothing */ }
 };
 
-int _main(int argc, char **argv) {
-    const char *locator = nullptr;
-    const char *configfile = nullptr;
+struct args_t {
+    unsigned char help_requested;        // -h
+    unsigned int size;                   // -s
+    char* config_path;                   // -c
+};
+struct args_t parse_args(int argc, char** argv);
 
-    getargs(argc, argv, {}, {{"locator", &locator}}
-#ifdef ZENOHCXX_ZENOHC
-            ,
-            {{"-c", {"config file", &configfile}}}
-#endif
-    );
+int _main(int argc, char **argv) {
+    auto args = parse_args(argc, argv);
+
+    if (args.help_requested) {
+        std::cout << "\
+        -s (required, int): the size of the put message in bytes\n\
+        -c (optional, string, disabled when backed by pico): the path to a configuration file for the session. If this option isn't passed, the default configuration will be used.\n\
+		";
+        return 1;
+    }
 
     Config config;
 #ifdef ZENOHCXX_ZENOHC
-    if (configfile) {
-        config = expect(config_from_file(configfile));
+    if (args.config_path) {
+        config = expect(config_from_file(args.config_path));
     }
 #endif
-
-    if (locator) {
-#ifdef ZENOHCXX_ZENOHC
-        auto locator_json_str_list = std::string("[\"") + locator + "\"]";
-        if (!config.insert_json(Z_CONFIG_CONNECT_KEY, locator_json_str_list.c_str()))
-#elif ZENOHCXX_ZENOHPICO
-        if (!config.insert(Z_CONFIG_CONNECT_KEY, locator))
-#else
-#error "Unknown zenoh backend"
-#endif
-        {
-            std::cout << "Invalid locator: " << locator << std::endl;
-            std::cout << "Expected value in format: tcp/192.168.64.3:7447" << std::endl;
-            exit(-1);
-        }
-    }
-
-    printf("Opening session...\n");
     auto session = expect<Session>(open(std::move(config)));
 
     KeyExpr keyexpr = session.declare_keyexpr("test/thr");
 
     Stats stats;
     auto subscriber = expect<Subscriber>(session.declare_subscriber(keyexpr, {stats, stats}));
-    char c = 0;
-    while (c != 'q') {
-        c = fgetc(stdin);
+
+    while (1) {
+        stats.sleep = true;
+        stats.start = std::chrono::steady_clock::now();
+        std::this_thread::sleep_for(std::chrono::milliseconds((unsigned long)(1000)));
+        stats.sleep = false;
+        auto elapsed_ms =
+                std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - stats.start).count();
+        // format and print to stdout
+        char buff[100];
+        snprintf(buff, sizeof(buff), "%d,%.3f\n", args.size, static_cast<double>(stats.count) * 1000.0 / static_cast<double>(elapsed_ms));
+        std::string buffStr = buff;
+        std::cout << buffStr;
+        stats.count = 0;
     }
     subscriber.drop();
-    stats.print();
 
     session.undeclare_keyexpr(std::move(keyexpr));
 
     return 0;
+}
+
+char* getopt(int argc, char** argv, char option) {
+    for (int i = 0; i < argc; i++) {
+        size_t len = strlen(argv[i]);
+        if (len >= 2 && argv[i][0] == '-' && argv[i][1] == option) {
+            if (len > 2 && argv[i][2] == '=') {
+                return argv[i] + 3;
+            } else if (i + 1 < argc) {
+                return argv[i + 1];
+            }
+        }
+    }
+    return NULL;
+}
+
+struct args_t parse_args(int argc, char** argv) {
+    for (int i = 0; i < argc; i++) {
+        if (strcmp(argv[i], "-h") == 0) {
+            struct args_t args;
+            args.help_requested = 1;
+            return args;
+        }
+    }
+    char* arg = getopt(argc, argv, 's');
+    unsigned int size;
+    if (arg) {
+        size = atoi(arg);
+    }
+    else {
+        struct args_t args;
+        args.help_requested = 1;
+        return args;
+    }
+    struct args_t args;
+    args.help_requested = 0;
+    args.size = size;
+    args.config_path = getopt(argc, argv, 'c');
+    return args;
 }
 
 int main(int argc, char **argv) {

@@ -13,56 +13,84 @@
 //
 #include <stdio.h>
 #include <string.h>
-
 #include <vector>
 
-#include "getargs.h"
 #include "zenoh.hxx"
 using namespace zenoh;
 
+#define DEFAULT_PKT_SIZE 8
+
+struct args_t {
+    unsigned char help_requested;        // -h
+    unsigned int size;                   // -s
+    char* config_path;                   // -c
+};
+struct args_t parse_args(int argc, char** argv);
+
 int _main(int argc, char **argv) {
     const char *keyexpr = "test/thr";
-    const char *payload_size = nullptr;
-    const char *locator = nullptr;
-    const char *configfile = nullptr;
 
-    getargs(argc, argv, {{"payload_size", &payload_size}}, {{"locator", &locator}}
-#ifdef ZENOHCXX_ZENOHC
-            ,
-            {{"-c", {"config file", &configfile}}}
-#endif
-    );
+    auto args = parse_args(argc, argv);
 
-    size_t len = atoi(payload_size);
+    if (args.help_requested) {
+        std::cout << "\
+        -s (optional, int, default=" << DEFAULT_PKT_SIZE << "): the size of the put message in bytes\n\
+        -c (optional, string, disabled when backed by pico): the path to a configuration file for the session. If this option isn't passed, the default configuration will be used.\n\
+		";
+        return 1;
+    }
+
+    size_t len = args.size;
     std::vector<char> payload(len, 1);
 
     Config config;
-    if (locator) {
 #ifdef ZENOHCXX_ZENOHC
-        auto locator_json_str_list = std::string("[\"") + locator + "\"]";
-        if (!config.insert_json(Z_CONFIG_CONNECT_KEY, locator_json_str_list.c_str()))
-#elif ZENOHCXX_ZENOHPICO
-        if (!config.insert(Z_CONFIG_CONNECT_KEY, locator))
-#else
-#error "Unknown zenoh backend"
-#endif
-        {
-            std::cout << "Invalid locator: " << locator << std::endl;
-            std::cout << "Expected value in format: tcp/192.168.64.3:7447" << std::endl;
-            exit(-1);
-        }
+    if (args.config_path) {
+        config = expect<Config>(config_from_file(args.config_path));
     }
-
-    printf("Opening session...\n");
+#endif
     auto session = expect<Session>(open(std::move(config)));
 
     PublisherOptions options;
     options.set_congestion_control(Z_CONGESTION_CONTROL_BLOCK);
 
-    printf("Declaring Publisher on '%s'...\n", keyexpr);
     auto pub = expect<Publisher>(session.declare_publisher(keyexpr, options));
 
     while (1) pub.put(payload);
+}
+
+char* getopt(int argc, char** argv, char option) {
+    for (int i = 0; i < argc; i++) {
+        size_t len = strlen(argv[i]);
+        if (len >= 2 && argv[i][0] == '-' && argv[i][1] == option) {
+            if (len > 2 && argv[i][2] == '=') {
+                return argv[i] + 3;
+            } else if (i + 1 < argc) {
+                return argv[i + 1];
+            }
+        }
+    }
+    return NULL;
+}
+
+struct args_t parse_args(int argc, char** argv) {
+    for (int i = 0; i < argc; i++) {
+        if (strcmp(argv[i], "-h") == 0) {
+            struct args_t args;
+            args.help_requested = 1;
+            return args;
+        }
+    }
+    char* arg = getopt(argc, argv, 's');
+    unsigned int size = DEFAULT_PKT_SIZE;
+    if (arg) {
+        size = atoi(arg);
+    }
+    struct args_t args;
+    args.help_requested = 0;
+    args.size = size;
+    args.config_path = getopt(argc, argv, 'c');
+    return args;
 }
 
 int main(int argc, char **argv) {

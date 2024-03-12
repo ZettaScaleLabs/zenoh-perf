@@ -18,8 +18,6 @@
 #include "zenoh.hxx"
 using namespace zenoh;
 
-#define N 1000000
-
 
 struct Stats {
     volatile unsigned long count = 0;
@@ -66,19 +64,25 @@ int _main(int argc, char **argv) {
     Stats stats;
     auto subscriber = expect<Subscriber>(session.declare_subscriber(keyexpr, {stats, stats}));
 
+    stats.count = 0;
+    stats.sleep = true;
+    stats.start = std::chrono::steady_clock::now();
     while (1) {
-        stats.sleep = true;
-        stats.start = std::chrono::steady_clock::now();
         std::this_thread::sleep_for(std::chrono::milliseconds((unsigned long)(1000)));
-        stats.sleep = false;
-        auto elapsed_ms =
-                std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - stats.start).count();
-        // format and print to stdout
-        char buff[100];
-        snprintf(buff, sizeof(buff), "%d,%.3f\n", args.size, static_cast<double>(stats.count) * 1000.0 / static_cast<double>(elapsed_ms));
-        std::string buffStr = buff;
-        std::cout << buffStr;
-        stats.count = 0;
+        if(stats.count > 0) {
+            stats.sleep = false;
+            auto elapsed_ms =
+                    std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - stats.start).count();
+            // format and print to stdout
+            char buff[100];
+            snprintf(buff, sizeof(buff), "%d,%.3f\n", args.size, static_cast<double>(stats.count) * 1000.0 / static_cast<double>(elapsed_ms));
+            std::string buffStr = buff;
+            std::cout << buffStr;
+            // reset counter and timer
+            stats.count = 0;
+            stats.sleep = true;
+            stats.start = std::chrono::steady_clock::now();
+        }
     }
     subscriber.drop();
 

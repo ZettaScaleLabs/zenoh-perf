@@ -16,11 +16,9 @@
 
 #include "zenoh.h"
 
-#define N 1000000
 
 typedef struct {
     volatile unsigned long count;
-    volatile unsigned long finished_rounds;
     z_clock_t start;
     bool sleep;
 } z_stats_t;
@@ -80,14 +78,20 @@ int main(int argc, char **argv) {
         exit(-1);
     }
 
+    context->count = 0;
+    context->sleep = true;
+    context->start = z_clock_now();
     while (1) {
-        context->count = 0;
-        context->start = z_clock_now();
-        context->sleep = true;
         z_sleep_s(1);
-        context->sleep = false;
-        unsigned long elapsed = z_clock_elapsed_ms(&context->start);
-        printf("%d,%.3f\n", args.size, (float)(context->count * 1000) / elapsed);
+        if(context->count > 0){
+            context->sleep = false;
+            unsigned long elapsed = z_clock_elapsed_ms(&context->start);
+            printf("%d,%.3f\n", args.size, (double)(context->count * 1000) / (double)(elapsed));
+            // reset counter and timer
+            context->count = 0;
+            context->sleep = true;
+            context->start = z_clock_now();
+        }
     }
 
     z_undeclare_subscriber(z_move(sub));

@@ -6,7 +6,7 @@ for bind in ['zenoh-c', 'zenoh-cpp']:
         name = f'{bind}/{branch}'
         print()
         print(name)
-        data = np.loadtxt(f'./_results/{name}.log', delimiter=',')[:, 1]
+        data = np.loadtxt(f'./_logs/{name}.log', delimiter=',')[:, 1]
         data.sort()
 
         print('p01: {}, p05: {}, p50: {}, p95: {}, p99: {}'.format(

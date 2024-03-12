@@ -1,0 +1,13 @@
+{
+  "mode": "peer",
+  "listen": {
+    "endpoints": [
+      "tcp/127.0.0.1:17447"
+    ]
+  },
+  "scouting": {
+    "multicast": {
+        "enabled": false
+      }
+  },
+}

@@ -7,7 +7,11 @@ mkdir -p $LOG_DIR
 
 export ASYNC_STD_THREAD_COUNT=1
 export ZENOH_RUNTIME_THREADS="tx=1;rx=1;net=1;acceptor=1;application=1"
+
 base="zenohc"
+
+# This doesn't work
+# base="zenohpico"
 
 for branch in "main" "tokio"; do
     LOG_FILE=${LOG_DIR}/${branch}.log

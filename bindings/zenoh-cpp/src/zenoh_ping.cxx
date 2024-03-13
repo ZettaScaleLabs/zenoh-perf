@@ -66,14 +66,12 @@ int _main(int argc, char** argv) {
     while(true) {
         std::this_thread::sleep_for(std::chrono::milliseconds((unsigned long)(args.interval * 1000)));
         auto start = std::chrono::steady_clock::now();
-        pub.put(BytesView(data.data(), data.size()));
-        if (condvar.wait_for(lock, 1s) == std::cv_status::timeout) {
             continue;
         }
         auto rtt =
             std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - start).count();
         char buff[100];
-        snprintf(buff, sizeof(buff), "%g,%lld\n", args.interval, rtt / 2);
+        snprintf(buff, sizeof(buff), "%g,%ld\n", args.interval, rtt / 2);
         std::string buffStr = buff;
         std::cout << buffStr << std::flush;
     }

@@ -72,7 +72,10 @@ int _main(int argc, char** argv) {
         }
         auto rtt =
             std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - start).count();
-        std::cout << args.size << "," << rtt / 2 << "\n";
+        char buff[100];
+        snprintf(buff, sizeof(buff), "%g,%lld\n", args.interval, rtt / 2);
+        std::string buffStr = buff;
+        std::cout << buffStr;
     }
     lock.unlock();
     return 0;

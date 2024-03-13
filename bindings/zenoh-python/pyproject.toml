@@ -1,0 +1,11 @@
+[project]
+name = "zenoh-python"
+version = "0.1.0"
+dependencies = [
+    "eclipse-zenoh @ git+https://github.com/yuanyuyuan/zenoh-python@feat/add-version",
+    # "eclipse-zenoh @ git+https://github.com/yuanyuyuan/zenoh-python@feat/add-version-tokio-porting",
+]
+requires-python = "==3.8.*"
+
+[tool.pdm]
+distribution = false

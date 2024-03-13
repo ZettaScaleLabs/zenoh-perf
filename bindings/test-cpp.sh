@@ -37,14 +37,13 @@ unset ZENOH_RUNTIME_THREADS
 # Throughput Test #
 ###################
 
+rm ${LOG_DIR}/throughput.log &> /dev/null
 
 function run_throughput() {
-    LOG_FILE=$1
-    PAYLOAD=$2
+    PAYLOAD=$1
 
-    rm $LOG_FILE &> /dev/null
     parallel --halt now,success=1 --lb <<EOL
-taskset -c 0,2 ./zenoh-cpp/build/${base}/zenoh_sub_thr -c ./config/peer-listen.json5 -s $PAYLOAD > $LOG_FILE
+taskset -c 0,2 ./zenoh-cpp/build/${base}/zenoh_sub_thr -c ./config/peer-listen.json5 -s $PAYLOAD >> ${LOG_DIR}/throughput.log
 sleep 1 && taskset -c 1,3 ./zenoh-cpp/build/${base}/zenoh_pub_thr -c ./config/peer-connect.json5 -s $PAYLOAD
 sleep 1 && sleep $TIMEOUT
 EOL
@@ -55,5 +54,5 @@ EOL
 
 # for PAYLOAD in 8 16; do
 for PAYLOAD in 8 16 32 64 128 256 512 1024 2048 4096 8192 16384 32768; do
-    run_throughput "${LOG_DIR}/throughput-${PAYLOAD}.log" $PAYLOAD
+    run_throughput $PAYLOAD
 done

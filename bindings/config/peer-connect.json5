@@ -10,11 +10,4 @@
         "enabled": false
       }
   },
-  transport: {
-    link: {
-      tx: {
-        threads: 1,
-      }
-    }
-  }
 }

@@ -37,7 +37,7 @@ function run_throughput() {
     PAYLOAD=$1
 
     parallel --halt now,success=1 --lb <<EOL
-taskset -c 0,2 pdm run python src/zenoh_sub_thr.py -c ../config/peer-listen.json5 -s $PAYLOAD > ${LOG_DIR}/throughput.log
+taskset -c 0,2 pdm run python src/zenoh_sub_thr.py -c ../config/peer-listen.json5 -s $PAYLOAD >> ${LOG_DIR}/throughput.log
 sleep 1 && taskset -c 1,3 pdm run python src/zenoh_pub_thr.py -c ../config/peer-connect.json5 -s $PAYLOAD
 sleep 1 && sleep $TIMEOUT
 EOL

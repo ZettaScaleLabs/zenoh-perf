@@ -65,7 +65,7 @@ start = 0
 end = 0
 cond = Condition()
 
-def sub_callback(sample):
+def sub_callback(_):
     global cond
     cond.acquire()
     cond.notify()

@@ -66,8 +66,6 @@ int _main(int argc, char** argv) {
     while(true) {
         std::this_thread::sleep_for(std::chrono::milliseconds((unsigned long)(args.interval * 1000)));
         auto start = std::chrono::steady_clock::now();
-        pub.put(BytesView(data.data(), data.size()));
-        if (condvar.wait_for(lock, 1s) == std::cv_status::timeout) {
             continue;
         }
         auto rtt =

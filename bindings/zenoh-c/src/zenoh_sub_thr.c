@@ -55,7 +55,7 @@ int main(int argc, char **argv) {
             "\
         -s (required, int): the size of the put message in bytes\n\
         -c (optional, string): the path to a configuration file for the session. If this option isn't passed, the default configuration will be used.\n\
-		"
+        "
         );
         return 1;
     }
@@ -87,6 +87,7 @@ int main(int argc, char **argv) {
             context->sleep = false;
             unsigned long elapsed = z_clock_elapsed_ms(&context->start);
             printf("%d,%.3f\n", args.size, (double)(context->count * 1000) / (double)(elapsed));
+            fflush(stdout);
             // reset counter and timer
             context->count = 0;
             context->sleep = true;

@@ -85,7 +85,7 @@ def main():
         if count > 0:
             sleeping = False
             end=time.time()
-            print(f"{size},{(count / (end - start)):.3f}")
+            print(f"{size},{(count / (end - start)):.3f}", flush=True)
             # reset counter and timer
             count = 0
             sleeping = True

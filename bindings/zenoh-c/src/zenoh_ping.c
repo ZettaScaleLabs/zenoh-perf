@@ -33,8 +33,8 @@ int main(int argc, char** argv) {
             "\
         -s (optional, int, default=%d): the size of the payload embedded in the ping and repeated by the pong\n\
         -i (optional, float, default=%f): the interval in seconds between ping messages\n\
-		-c (optional, string): the path to a configuration file for the session. If this option isn't passed, the default configuration will be used.\n\
-		",
+        -c (optional, string): the path to a configuration file for the session. If this option isn't passed, the default configuration will be used.\n\
+        ",
             DEFAULT_PKT_SIZE, DEFAULT_INTERVAL);
         return 1;
     }
@@ -62,6 +62,7 @@ int main(int argc, char** argv) {
         }
         unsigned long elapsed = z_clock_elapsed_us(&measure_start);
         printf("%g,%lu\n", args.interval, elapsed/2);
+        fflush(stdout);
     }
     z_free(data);
     z_drop(z_move(sub));

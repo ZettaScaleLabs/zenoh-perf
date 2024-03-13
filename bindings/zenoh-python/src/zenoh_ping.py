@@ -94,7 +94,7 @@ def main():
         if not cond.wait(1):
             continue
         end = time.time()
-        print(f"{size},{math.floor(((end - start) / 2)*1000000)}")
+        print(f"{size},{math.floor(((end - start) / 2)*1000000)}", flush=True)
 
     session.close()
 main()

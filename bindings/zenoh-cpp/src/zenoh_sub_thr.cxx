@@ -47,7 +47,7 @@ int _main(int argc, char **argv) {
         std::cout << "\
         -s (required, int): the size of the put message in bytes\n\
         -c (optional, string, disabled when backed by pico): the path to a configuration file for the session. If this option isn't passed, the default configuration will be used.\n\
-		";
+        ";
         return 1;
     }
 
@@ -77,7 +77,7 @@ int _main(int argc, char **argv) {
             char buff[100];
             snprintf(buff, sizeof(buff), "%d,%.3f\n", args.size, static_cast<double>(stats.count) * 1000.0 / static_cast<double>(elapsed_ms));
             std::string buffStr = buff;
-            std::cout << buffStr;
+            std::cout << buffStr << std::flush;
             // reset counter and timer
             stats.count = 0;
             stats.sleep = true;

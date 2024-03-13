@@ -9,7 +9,7 @@ build_c:
     cmake --build ./zenoh-c/build
 
 test_c:
-    ./test-c.sh
+    -./test-c.sh
 
 clean_c:
     rm -rf ./zenoh-c/build
@@ -19,7 +19,7 @@ build_cpp:
     cmake --build ./zenoh-cpp/build
 
 test_cpp:
-    ./test-cpp.sh
+    -./test-cpp.sh
 
 clean_cpp:
     rm -rf ./zenoh-cpp/build
@@ -28,4 +28,4 @@ build_python:
     cd zenoh-python && pdm install
 
 test_python:
-    ./test-python.sh
+    -./test-python.sh

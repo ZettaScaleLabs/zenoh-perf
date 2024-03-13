@@ -2,6 +2,8 @@ build: build_c build_cpp build_python
 
 clean: clean_c clean_cpp
 
+test: test_c test_cpp test_python
+
 build_c:
     cmake ./zenoh-c -B ./zenoh-c/build
     cmake --build ./zenoh-c/build

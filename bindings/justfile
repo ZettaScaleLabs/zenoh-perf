@@ -1,4 +1,4 @@
-build: build_c build_cpp
+build: build_c build_cpp build_python
 
 clean: clean_c clean_cpp
 

@@ -46,7 +46,7 @@ EOL
 }
 
 
-# for PAYLOAD in 8 16 32 64 128 256 512 1024 2048 4096 8192 16384 32768; do
-for PAYLOAD in 8 16; do
+# for PAYLOAD in 8 16; do
+for PAYLOAD in 8 16 32 64 128 256 512 1024 2048 4096 8192 16384 32768; do
     run_throughput "${LOG_DIR}/throughput-${PAYLOAD}.log" $PAYLOAD
 done

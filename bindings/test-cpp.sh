@@ -29,8 +29,8 @@ EOL
 pkill zenoh_ping
 pkill zenoh_pong
 
-# unset ASYNC_STD_THREAD_COUNT
-# unset ZENOH_RUNTIME_THREADS
+unset ASYNC_STD_THREAD_COUNT
+unset ZENOH_RUNTIME_THREADS
 
 
 ###################

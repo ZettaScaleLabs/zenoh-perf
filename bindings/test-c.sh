@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 LOG_DIR="_logs/zenoh-c"
-TIMEOUT=10s
+TIMEOUT=20s
 rm -rf $LOG_DIR &> /dev/null
 mkdir -p $LOG_DIR
 
@@ -46,6 +46,7 @@ EOL
 
 
 # for PAYLOAD in 8 16; do
-for PAYLOAD in 8 16 32 64 128 256 512 1024 2048 4096 8192 16384 32768; do
+# for PAYLOAD in 8 16 32 64 128 256 512 1024 2048 4096 8192 16384 32768; do
+for PAYLOAD in 8 32 128 512 2048 8192 32768 131072 524288 2097152 8388608 33554432; do
     run_throughput $PAYLOAD
 done

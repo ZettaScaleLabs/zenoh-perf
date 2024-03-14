@@ -23,8 +23,8 @@ sleep 1 && sleep $TIMEOUT
 EOL
 pkill pdm
 
-unset ASYNC_STD_THREAD_COUNT
-unset ZENOH_RUNTIME_THREADS
+# unset ASYNC_STD_THREAD_COUNT
+# unset ZENOH_RUNTIME_THREADS
 
 
 ###################

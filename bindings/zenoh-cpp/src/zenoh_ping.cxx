@@ -46,7 +46,7 @@ int _main(int argc, char** argv) {
         -s (optional, int, default=" << DEFAULT_PKT_SIZE << "): the size of the payload embedded in the ping and repeated by the pong\n\
         -i (optional, float, default="<< DEFAULT_INTERVAL << "): the interval in seconds between ping messages\n\
         -c (optional, string, disabled when backed by pico): the path to a configuration file for the session. If this option isn't passed, the default configuration will be used.\n\
-		";
+        ";
         return 1;
     }
     Config config;
@@ -73,9 +73,9 @@ int _main(int argc, char** argv) {
         auto rtt =
             std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - start).count();
         char buff[100];
-        snprintf(buff, sizeof(buff), "%g,%lld\n", args.interval, rtt / 2);
+        snprintf(buff, sizeof(buff), "%g,%ld\n", args.interval, rtt / 2);
         std::string buffStr = buff;
-        std::cout << buffStr;
+        std::cout << buffStr << std::flush;
     }
     lock.unlock();
     return 0;
@@ -112,7 +112,7 @@ struct args_t parse_args(int argc, char** argv) {
     arg = getopt(argc, argv, 'i');
     if (arg) {
         interval = atof(arg);
-    } 
+    }
     struct args_t args;
     args.help_requested = 0;
     args.size = size;

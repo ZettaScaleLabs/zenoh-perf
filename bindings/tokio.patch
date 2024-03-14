@@ -1,0 +1,44 @@
+diff --git a/bindings/zenoh-c/CMakeLists.txt b/bindings/zenoh-c/CMakeLists.txt
+index 8650a5c..ef4a3c1 100644
+--- a/bindings/zenoh-c/CMakeLists.txt
++++ b/bindings/zenoh-c/CMakeLists.txt
+@@ -4,7 +4,7 @@ project(zenohc_perf LANGUAGES C)
+ set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
+ include(helpers)
+ set_default_build_type(Release)
+-configure_include_project(ZENOHC zenohc zenohc::lib ".." zenohc "https://github.com/eclipse-zenoh/zenoh-c" "main")
++configure_include_project(ZENOHC zenohc zenohc::lib ".." zenohc "https://github.com/YuanYuYuan/zenoh-c" "test/tokio-porting")
+ add_custom_target(perfs ALL)
+ 
+ file(GLOB files "${CMAKE_CURRENT_SOURCE_DIR}/src/*.c")
+diff --git a/bindings/zenoh-cpp/CMakeLists.txt b/bindings/zenoh-cpp/CMakeLists.txt
+index dbe5ffc..7375896 100644
+--- a/bindings/zenoh-cpp/CMakeLists.txt
++++ b/bindings/zenoh-cpp/CMakeLists.txt
+@@ -4,9 +4,9 @@ project(zenohcxx_perfs LANGUAGES C CXX)
+ set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
+ include(helpers)
+ set_default_build_type(Release)
+-configure_include_project(ZENOHCXX_ZENOHC zenohc zenohc::lib "../../zenoh-c" zenohc "https://github.com/eclipse-zenoh/zenoh-c" "main")
++configure_include_project(ZENOHCXX_ZENOHC zenohc zenohc::lib "../../zenoh-c" zenohc "https://github.com/YuanYuYuan/zenoh-c" "test/tokio-porting")
+ configure_include_project(ZENOHPICO zenohpico zenohpico "../../zenoh-pico" zenohc "https://github.com/eclipse-zenoh/zenoh-pico" "main")
+-configure_include_project(ZENOHCXX zenohcxx zenohcxx ".." zenohcxx "https://github.com/eclipse-zenoh/zenoh-cpp" "main")
++configure_include_project(ZENOHCXX zenohcxx zenohcxx ".." zenohcxx "https://github.com/YuanYuYuan/zenoh-cpp" "test/tokio-porting")
+ add_custom_target(perfs ALL)
+ 
+ add_custom_target(perfs_zenohc)
+diff --git a/bindings/zenoh-python/pyproject.toml b/bindings/zenoh-python/pyproject.toml
+index 5cb8914..b4dc327 100644
+--- a/bindings/zenoh-python/pyproject.toml
++++ b/bindings/zenoh-python/pyproject.toml
+@@ -2,8 +2,8 @@
+ name = "zenoh-python"
+ version = "0.1.0"
+ dependencies = [
+-    "eclipse-zenoh @ git+https://github.com/yuanyuyuan/zenoh-python@feat/add-version",
+-    # "eclipse-zenoh @ git+https://github.com/yuanyuyuan/zenoh-python@feat/add-version-tokio-porting",
++    # "eclipse-zenoh @ git+https://github.com/yuanyuyuan/zenoh-python@feat/add-version",
++    "eclipse-zenoh @ git+https://github.com/yuanyuyuan/zenoh-python@feat/add-version-tokio-porting",
+ ]
+ requires-python = "==3.8.*"
+ 

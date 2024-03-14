@@ -65,7 +65,7 @@ start = 0
 end = 0
 cond = Condition()
 
-def sub_callback(sample):
+def sub_callback(_):
     global cond
     cond.acquire()
     cond.notify()
@@ -94,7 +94,7 @@ def main():
         if not cond.wait(1):
             continue
         end = time.time()
-        print(f"{args.interval},{math.floor(((end - start) / 2)*1000000)}")
+        print(f"{args.interval},{math.floor(((end - start) / 2)*1000000)}", flush=True)
 
     session.close()
 main()

@@ -12,7 +12,7 @@ mkdir -p $LOG_DIR
 export ASYNC_STD_THREAD_COUNT=1
 export ZENOH_RUNTIME_THREADS="tx=1;rx=1;net=1;acceptor=1;application=1"
 
-LOG_FILE=${LOG_DIR}/lantency.log
+LOG_FILE=${LOG_DIR}/latency.log
 rm $LOG_FILE &> /dev/null
 parallel --halt now,success=1 --lb <<EOL
 taskset -c 0,2 ./zenoh-c/build/zenoh_pong -c ./config/peer-listen-tx1.json5

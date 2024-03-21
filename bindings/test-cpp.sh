@@ -7,7 +7,7 @@ mkdir -p $LOG_DIR
 
 base="zenohc"
 
-# This doesn't work
+# Must also run a zenohd router for zenoh-pico to work
 # base="zenohpico"
 
 ################

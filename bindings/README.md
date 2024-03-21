@@ -3,22 +3,23 @@
 Supported Bindings
 - zenoh-c
 - zenoh-cpp
+- zenoh-python
 
 ## Build
 
 ```bash
-./build.sh
+just build
 ```
 
 ## Run Test
 
 ```bash
-./test-c.sh
-./test-cpp.sh
+just test
 ```
 
 ## Analysis
 
 ```bash
-python3 ./analyze.py
+python3 ./analyze-throughput.py LOG_DIR
+python3 ./analyze-latency.py LOG_DIR
 ```

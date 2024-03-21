@@ -1,6 +1,6 @@
 build: build_c build_cpp build_python
 
-clean: clean_c clean_cpp
+clean: clean_c clean_cpp clean_python
 
 test: test_c test_cpp test_python
 
@@ -29,3 +29,6 @@ build_python:
 
 test_python:
     -./test-python.sh
+
+clean_python:
+    rm -rf ./zenoh-python/.venv
